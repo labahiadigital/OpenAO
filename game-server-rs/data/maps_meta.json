@@ -1,0 +1,1178 @@
+﻿{
+    "274":  {
+                "name":  "Mapa de GMs. (PartenÃ³n de los Dioses / Biblioteca)",
+                "pk":  1
+            },
+    "184":  {
+                "name":  "Dungeon Inferno.",
+                "pk":  0
+            },
+    "121":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "31":  {
+               "name":  "Bosque al sureste de Nix.",
+               "pk":  0
+           },
+    "117":  {
+                "name":  "Mar al oeste de Lindos.",
+                "pk":  0
+            },
+    "29":  {
+               "name":  "Bosque al este de Nix.",
+               "pk":  0
+           },
+    "200":  {
+                "name":  "Mapa LegiÃ³n Oscura.",
+                "pk":  1
+            },
+    "501":  {
+                "name":  "Local PvP Arena",
+                "pk":  1
+            },
+    "5":  {
+              "name":  "Bosque norte de Ullathorpe",
+              "pk":  0
+          },
+    "47":  {
+               "name":  "Isla Veleta.",
+               "pk":  0
+           },
+    "505":  {
+                "name":  "Local PvP Unsafe Arena",
+                "pk":  0
+            },
+    "156":  {
+                "name":  "Ciudad de Arkhein. (teatro \"El Juglar\")",
+                "pk":  0
+            },
+    "226":  {
+                "name":  "Mar al oeste de Nix.",
+                "pk":  0
+            },
+    "100":  {
+                "name":  "Mar al sur del desierto.",
+                "pk":  0
+            },
+    "269":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "78":  {
+               "name":  "Mar al oeste de Nix.",
+               "pk":  0
+           },
+    "210":  {
+                "name":  "Gran Isla al sur de Nix.",
+                "pk":  0
+            },
+    "169":  {
+                "name":  "Mapa de GMs.",
+                "pk":  1
+            },
+    "170":  {
+                "name":  "Nubal",
+                "pk":  1
+            },
+    "33":  {
+               "name":  "Minas de Hierro.",
+               "pk":  0
+           },
+    "108":  {
+                "name":  "Mar oriental. (norte de Lindos)",
+                "pk":  0
+            },
+    "284":  {
+                "name":  "Escondrijo Ruinas de Ã‹arost",
+                "pk":  0
+            },
+    "159":  {
+                "name":  "Cementerio de Viejas Glorias.",
+                "pk":  0
+            },
+    "266":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "196":  {
+                "name":  "Ciudad de Arghal.",
+                "pk":  1
+            },
+    "235":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "39":  {
+               "name":  "Bosque Dorck.",
+               "pk":  0
+           },
+    "132":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "45":  {
+               "name":  "Catacumbas Ullathorpe-Nix.",
+               "pk":  0
+           },
+    "277":  {
+                "name":  "Mapa para Casamientos. (Isla)",
+                "pk":  1
+            },
+    "17":  {
+               "name":  "Desierto",
+               "pk":  0
+           },
+    "257":  {
+                "name":  "Mar al sur del Dungeon Veriil.",
+                "pk":  0
+            },
+    "224":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "144":  {
+                "name":  "Dungeon Veriil.",
+                "pk":  0
+            },
+    "504":  {
+                "name":  "Local PvP Safe Arena",
+                "pk":  1
+            },
+    "62":  {
+               "name":  "Ciudad de Lindos.",
+               "pk":  1
+           },
+    "6":  {
+              "name":  "Bosque norte de Ullathorpe",
+              "pk":  0
+          },
+    "72":  {
+               "name":  "Bosque entre Banderbill y Ullathorpe.",
+               "pk":  0
+           },
+    "183":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "14":  {
+               "name":  "Bosque sureste de Ullathorpe",
+               "pk":  0
+           },
+    "103":  {
+                "name":  "Mar al este del desierto.",
+                "pk":  0
+            },
+    "87":  {
+               "name":  "Mar al sur de Nix.",
+               "pk":  0
+           },
+    "261":  {
+                "name":  "Mar con entrada al Dungeon Veriil.",
+                "pk":  0
+            },
+    "34":  {
+               "name":  "Ciudad de Nix.",
+               "pk":  1
+           },
+    "252":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "194":  {
+                "name":  "Bosque Central.",
+                "pk":  0
+            },
+    "81":  {
+               "name":  "Bosque al noreste de Ullathorpe.",
+               "pk":  0
+           },
+    "125":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "281":  {
+                "name":  "Mausoleo",
+                "pk":  0
+            },
+    "258":  {
+                "name":  "Mar al sur del Dungeon Veriil.",
+                "pk":  0
+            },
+    "268":  {
+                "name":  "Interior de la Montaï¿½a.",
+                "pk":  0
+            },
+    "55":  {
+               "name":  "Bosque al sur de Banderbill.",
+               "pk":  0
+           },
+    "219":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "3":  {
+              "name":  "Bosque al sur de Ullathorpe",
+              "pk":  0
+          },
+    "73":  {
+               "name":  "Bosque entre Banderbill y Ullathorpe.",
+               "pk":  0
+           },
+    "48":  {
+               "name":  "Dungeon Veriil. (Dungeon Dragon)",
+               "pk":  0
+           },
+    "79":  {
+               "name":  "Mar al suroeste de Nix.",
+               "pk":  0
+           },
+    "181":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "52":  {
+               "name":  "Minas de Plata.",
+               "pk":  0
+           },
+    "101":  {
+                "name":  "Mapa 101",
+                "pk":  0
+            },
+    "85":  {
+               "name":  "Bosque central.",
+               "pk":  0
+           },
+    "146":  {
+                "name":  "Dungeon Veriil. (Fuerte)",
+                "pk":  0
+            },
+    "114":  {
+                "name":  "Isla Nueva Esperanza. (suroeste)",
+                "pk":  0
+            },
+    "8":  {
+              "name":  "Bosque oeste de Ullathorpe",
+              "pk":  0
+          },
+    "21":  {
+               "name":  "Desierto",
+               "pk":  0
+           },
+    "251":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "65":  {
+               "name":  "Bosque al sur de la CÃ¡rcel de Banderbill.",
+               "pk":  0
+           },
+    "239":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "203":  {
+                "name":  "Mar al norte del desierto.",
+                "pk":  0
+            },
+    "163":  {
+                "name":  "Fuerte Pretoriano.",
+                "pk":  0
+            },
+    "30":  {
+               "name":  "Bosque al sureste de Nix.",
+               "pk":  0
+           },
+    "147":  {
+                "name":  "Mar al este de Arghal.",
+                "pk":  0
+            },
+    "145":  {
+                "name":  "Dungeon Veriil.",
+                "pk":  0
+            },
+    "57":  {
+               "name":  "Bosque al sur de Banderbill.",
+               "pk":  0
+           },
+    "214":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "162":  {
+                "name":  "Laberinto Oscuro.",
+                "pk":  0
+            },
+    "99":  {
+               "name":  "Mar al sur del desierto.",
+               "pk":  0
+           },
+    "173":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "189":  {
+                "name":  "Bosque Ã‰lfico.",
+                "pk":  0
+            },
+    "32":  {
+               "name":  "Bosque al este de Nix.",
+               "pk":  0
+           },
+    "109":  {
+                "name":  "Mar oriental. (norte de Lindos)",
+                "pk":  0
+            },
+    "502":  {
+                "name":  "Local Viewers Arena",
+                "pk":  0
+            },
+    "119":  {
+                "name":  "Mar Oriental / Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "253":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "67":  {
+               "name":  "Bosque al sur Banderbill.",
+               "pk":  0
+           },
+    "66":  {
+               "name":  "CÃ¡rcel de Banderbill.",
+               "pk":  0
+           },
+    "133":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "75":  {
+               "name":  "Bosque al noroeste de Ullathorpe.",
+               "pk":  0
+           },
+    "172":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "36":  {
+               "name":  "Bosque de Dorck.",
+               "pk":  0
+           },
+    "225":  {
+                "name":  "Mar al oeste de Nix.",
+                "pk":  0
+            },
+    "241":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "2":  {
+              "name":  "Bosque sur de Ullathorpe",
+              "pk":  0
+          },
+    "168":  {
+                "name":  "Dungeon Newbie.",
+                "pk":  1
+            },
+    "61":  {
+               "name":  "Ciudad de Banderbill. (Muelle)",
+               "pk":  1
+           },
+    "205":  {
+                "name":  "Mar al norte del desierto.",
+                "pk":  0
+            },
+    "193":  {
+                "name":  "Bosque Central.",
+                "pk":  0
+            },
+    "13":  {
+               "name":  "Bosque este de Ullathorpe",
+               "pk":  0
+           },
+    "107":  {
+                "name":  "Mar oriental. (norte de Lindos)",
+                "pk":  0
+            },
+    "201":  {
+                "name":  "Isla Pirata.",
+                "pk":  0
+            },
+    "265":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "139":  {
+                "name":  "Mar Oriental. (oeste de Dungeon Inferno)",
+                "pk":  0
+            },
+    "112":  {
+                "name":  "Isla Nueva Esperanza. (este)",
+                "pk":  1
+            },
+    "237":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "195":  {
+                "name":  "Ciudad de Arghal. (Taberna)",
+                "pk":  1
+            },
+    "177":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "260":  {
+                "name":  "Mar al sur del Dungeon Veriil.",
+                "pk":  0
+            },
+    "190":  {
+                "name":  "Nuevo Mapa",
+                "pk":  0
+            },
+    "287":  {
+                "name":  "Polo Norte",
+                "pk":  0
+            },
+    "42":  {
+               "name":  "Catacumbas Ullathorpe-Nix.",
+               "pk":  0
+           },
+    "130":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "59":  {
+               "name":  "Mapa 59",
+               "pk":  1
+           },
+    "215":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "157":  {
+                "name":  "Bosque al oeste de Arghal.",
+                "pk":  0
+            },
+    "35":  {
+               "name":  "Bosque al norte de Nix.",
+               "pk":  0
+           },
+    "191":  {
+                "name":  "Bosque Central.",
+                "pk":  0
+            },
+    "89":  {
+               "name":  "Mar al sur de Nix.",
+               "pk":  0
+           },
+    "60":  {
+               "name":  "Ciudad de Banderbill.",
+               "pk":  1
+           },
+    "152":  {
+                "name":  "Mar Oriental. (sur de Lindos)",
+                "pk":  0
+            },
+    "115":  {
+                "name":  "Dungeon Marabel.",
+                "pk":  0
+            },
+    "22":  {
+               "name":  "Bosque noreste de Nix",
+               "pk":  0
+           },
+    "126":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "238":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "202":  {
+                "name":  "Mar al norte del desierto.",
+                "pk":  0
+            },
+    "197":  {
+                "name":  "Ciudad de Arghal. (PescaderÃ­a)",
+                "pk":  1
+            },
+    "158":  {
+                "name":  "Bosques al este de Banderbill.",
+                "pk":  0
+            },
+    "105":  {
+                "name":  "Mar al oeste de Lindos.",
+                "pk":  0
+            },
+    "223":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "155":  {
+                "name":  "Mar Oriental. (sur de Lindos)",
+                "pk":  0
+            },
+    "76":  {
+               "name":  "Bosque con entrada al Dungeon Marabel.",
+               "pk":  0
+           },
+    "230":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "254":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "97":  {
+               "name":  "Mar al norte de Arkhein y al sur del desierto.",
+               "pk":  0
+           },
+    "188":  {
+                "name":  "Bosque Ã‰lfico.",
+                "pk":  0
+            },
+    "58":  {
+               "name":  "Suburbios de Banderbill.",
+               "pk":  1
+           },
+    "199":  {
+                "name":  "Mapa para Casamientos. (Isla de pasto)",
+                "pk":  0
+            },
+    "80":  {
+               "name":  "Mar al noroeste de Nix.",
+               "pk":  0
+           },
+    "19":  {
+               "name":  "Bosque sureste de Ullathorpe",
+               "pk":  0
+           },
+    "264":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "243":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "92":  {
+               "name":  "Mar al norte de Arkhein.",
+               "pk":  0
+           },
+    "77":  {
+               "name":  "Bosque al noreste de Ullathorpe.",
+               "pk":  0
+           },
+    "134":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "255":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "249":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "221":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "142":  {
+                "name":  "Dungeon Veriil.",
+                "pk":  0
+            },
+    "64":  {
+               "name":  "Ciudad de Lindos.",
+               "pk":  1
+           },
+    "285":  {
+                "name":  "Cueva del Kraken Ruinas de Ã‹arost",
+                "pk":  0
+            },
+    "165":  {
+                "name":  "Aldea Pretoriana.",
+                "pk":  0
+            },
+    "93":  {
+               "name":  "Mar al norte de Arkhein.",
+               "pk":  0
+           },
+    "12":  {
+               "name":  "Bosque este de Ullathorpe",
+               "pk":  0
+           },
+    "104":  {
+                "name":  "Mar al oeste de Lindos.",
+                "pk":  0
+            },
+    "116":  {
+                "name":  "Dungeon Marabel.",
+                "pk":  0
+            },
+    "192":  {
+                "name":  "Bosque Central.",
+                "pk":  0
+            },
+    "273":  {
+                "name":  "Mapa de GMs. (rings de Clanes)",
+                "pk":  1
+            },
+    "37":  {
+               "name":  "Newbie Dungeon.",
+               "pk":  1
+           },
+    "83":  {
+               "name":  "Bosque al noreste de Ullathorpe.",
+               "pk":  0
+           },
+    "129":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "160":  {
+                "name":  "Bosque al este de Banderbill.",
+                "pk":  0
+            },
+    "278":  {
+                "name":  "Mapa para Casamientos. (Bosque)",
+                "pk":  1
+            },
+    "24":  {
+               "name":  "Bosque noreste de Nix",
+               "pk":  0
+           },
+    "228":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "1":  {
+              "name":  "Ciudad de Ullathorpe",
+              "pk":  1
+          },
+    "204":  {
+                "name":  "Mar al norte del desierto.",
+                "pk":  0
+            },
+    "94":  {
+               "name":  "Bosque noreste de Nix",
+               "pk":  0
+           },
+    "122":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "50":  {
+               "name":  "Minas de Plata.",
+               "pk":  0
+           },
+    "51":  {
+               "name":  "Minas de Plata.",
+               "pk":  0
+           },
+    "82":  {
+               "name":  "Bosque al noreste de Ullathorpe.",
+               "pk":  0
+           },
+    "211":  {
+                "name":  "Gran Isla al sur de Nix.",
+                "pk":  0
+            },
+    "167":  {
+                "name":  "Dungeon Newbie.",
+                "pk":  0
+            },
+    "185":  {
+                "name":  "Bosque Central.",
+                "pk":  0
+            },
+    "41":  {
+               "name":  "Catacumbas Ullathorpe-Nix.",
+               "pk":  0
+           },
+    "217":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "271":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "179":  {
+                "name":  "Minas de Oro.",
+                "pk":  0
+            },
+    "23":  {
+               "name":  "Bosque noreste de Nix",
+               "pk":  0
+           },
+    "111":  {
+                "name":  "Isla Nueva Esperanza. (oeste)",
+                "pk":  0
+            },
+    "123":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "91":  {
+               "name":  "Bosque al norte Arkhein.",
+               "pk":  0
+           },
+    "242":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "250":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "53":  {
+               "name":  "Bosque al norte de Ullathorpe.",
+               "pk":  0
+           },
+    "149":  {
+                "name":  "Mar al este de Arghal. (muelle de Arghal)",
+                "pk":  0
+            },
+    "68":  {
+               "name":  "Bosque al sur Banderbill.",
+               "pk":  0
+           },
+    "216":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "143":  {
+                "name":  "Dungeon Veriil.",
+                "pk":  0
+            },
+    "154":  {
+                "name":  "Mar Oriental. (sur de Lindos)",
+                "pk":  0
+            },
+    "213":  {
+                "name":  "Gran Isla al sur de Nix. (entrada a Minas de Oro)",
+                "pk":  0
+            },
+    "44":  {
+               "name":  "Catacumbas Ullathorpe-Nix.",
+               "pk":  0
+           },
+    "9":  {
+              "name":  "Bosque oeste de Ullathorpe",
+              "pk":  0
+          },
+    "270":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "267":  {
+                "name":  "Interior de la MontaÃ±a.",
+                "pk":  0
+            },
+    "182":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "28":  {
+               "name":  "Cementerio",
+               "pk":  0
+           },
+    "118":  {
+                "name":  "Mar al oeste de Lindos.",
+                "pk":  0
+            },
+    "18":  {
+               "name":  "Bosque sureste de Ullathorpe",
+               "pk":  0
+           },
+    "43":  {
+               "name":  "Catacumbas Ullathorpe-Nix.",
+               "pk":  0
+           },
+    "256":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "135":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "56":  {
+               "name":  "Bosque al sur de Banderbill.",
+               "pk":  0
+           },
+    "150":  {
+                "name":  "Ciudad de Arkhein. (muelle)",
+                "pk":  0
+            },
+    "95":  {
+               "name":  "Mar al norte de Arkhein.",
+               "pk":  0
+           },
+    "218":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "141":  {
+                "name":  "Dungeon Veriil.",
+                "pk":  0
+            },
+    "71":  {
+               "name":  "Bosque entre Banderbill y Ullathorpe.",
+               "pk":  0
+           },
+    "282":  {
+                "name":  "Isla Otto",
+                "pk":  0
+            },
+    "286":  {
+                "name":  "Polo Norte",
+                "pk":  0
+            },
+    "164":  {
+                "name":  "Desfiladero al oeste del Fuerte Preatoriano.",
+                "pk":  0
+            },
+    "11":  {
+               "name":  "Bosque este de Ullathorpe",
+               "pk":  0
+           },
+    "175":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "16":  {
+               "name":  "Desierto",
+               "pk":  0
+           },
+    "272":  {
+                "name":  "Mapa de GMs. (rings)",
+                "pk":  1
+            },
+    "263":  {
+                "name":  "Mar al sureste del Dungeon Veriil.",
+                "pk":  0
+            },
+    "187":  {
+                "name":  "Paraiso.",
+                "pk":  0
+            },
+    "90":  {
+               "name":  "Mar al este de Arkhein.",
+               "pk":  0
+           },
+    "25":  {
+               "name":  "CiÃ©naga de las cobras",
+               "pk":  0
+           },
+    "137":  {
+                "name":  "Mar NÃ³rdico. (muelle de Banderbill)",
+                "pk":  0
+            },
+    "283":  {
+                "name":  "Entrada Ruinas de Ã‹arost",
+                "pk":  0
+            },
+    "208":  {
+                "name":  "Mapa para Casamientos. (Iglesia)",
+                "pk":  0
+            },
+    "207":  {
+                "name":  "Mar al norte del desierto.",
+                "pk":  0
+            },
+    "171":  {
+                "name":  "Ciudad Abandonada.",
+                "pk":  0
+            },
+    "20":  {
+               "name":  "Desierto",
+               "pk":  0
+           },
+    "136":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "275":  {
+                "name":  "Mapa de la Armada Real.",
+                "pk":  1
+            },
+    "288":  {
+                "name":  "Polo Norte",
+                "pk":  0
+            },
+    "166":  {
+                "name":  "Dungeon Dragon.",
+                "pk":  0
+            },
+    "113":  {
+                "name":  "Isla Nueva Esperanza. (sureste)",
+                "pk":  0
+            },
+    "503":  {
+                "name":  "Local Navigation Arena",
+                "pk":  0
+            },
+    "96":  {
+               "name":  "Mar al norte de Arkhein.",
+               "pk":  0
+           },
+    "209":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "248":  {
+                "name":  "Mar Central.",
+                "pk":  0
+            },
+    "128":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "27":  {
+               "name":  "Bosque al sur de la entrada al Dungeon Dragon.",
+               "pk":  0
+           },
+    "280":  {
+                "name":  "Mapa de GMs. (Juzgado)",
+                "pk":  1
+            },
+    "276":  {
+                "name":  "Oasis",
+                "pk":  0
+            },
+    "246":  {
+                "name":  "Mar al sur de Arghal.",
+                "pk":  0
+            },
+    "279":  {
+                "name":  "Mapa para Casamientos. (Isla desÃ©rtica)",
+                "pk":  1
+            },
+    "222":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "180":  {
+                "name":  "Bosque central. (MontaÃ±a)",
+                "pk":  0
+            },
+    "4":  {
+              "name":  "Bosque noreste de Nix",
+              "pk":  0
+          },
+    "46":  {
+               "name":  "Bosque de Dorck.",
+               "pk":  0
+           },
+    "120":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "74":  {
+               "name":  "Bosque al noroeste de Ullathorpe.",
+               "pk":  0
+           },
+    "212":  {
+                "name":  "Gran Isla al sur de Nix.",
+                "pk":  0
+            },
+    "153":  {
+                "name":  "Mar Oriental. (sur de Lindos)",
+                "pk":  0
+            },
+    "38":  {
+               "name":  "Bosque Dorck.",
+               "pk":  0
+           },
+    "70":  {
+               "name":  "Bosque al este del Dungeon Marabel.",
+               "pk":  0
+           },
+    "247":  {
+                "name":  "Mar al sur de Arghal.",
+                "pk":  0
+            },
+    "174":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "106":  {
+                "name":  "Mar oriental. (norte de Lindos)",
+                "pk":  0
+            },
+    "69":  {
+               "name":  "Bosque al sur Banderbill.",
+               "pk":  0
+           },
+    "88":  {
+               "name":  "Mar al sur de Nix.",
+               "pk":  0
+           },
+    "262":  {
+                "name":  "Mar al sureste del Dungeon Veriil.",
+                "pk":  0
+            },
+    "102":  {
+                "name":  "Mar al sureste del desierto.",
+                "pk":  0
+            },
+    "178":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "49":  {
+               "name":  "Mapa de GMs.",
+               "pk":  0
+           },
+    "131":  {
+                "name":  "Mar NÃ³rdico.",
+                "pk":  0
+            },
+    "229":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "236":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "40":  {
+               "name":  "Catacumbas Ullathorpe-Nix.",
+               "pk":  0
+           },
+    "244":  {
+                "name":  "Mar al sur de Arghal.",
+                "pk":  0
+            },
+    "227":  {
+                "name":  "Mar al oeste de Nix.",
+                "pk":  0
+            },
+    "151":  {
+                "name":  "Ciudad de Arkhein.",
+                "pk":  1
+            },
+    "231":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "240":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "198":  {
+                "name":  "Mapa para Casamientos. (Oasis)",
+                "pk":  0
+            },
+    "234":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "54":  {
+               "name":  "Bosque al sur de Banderbill.",
+               "pk":  0
+           },
+    "176":  {
+                "name":  "Ducto de escape.",
+                "pk":  0
+            },
+    "506":  {
+                "name":  "Mapa de Retos",
+                "pk":  0
+            },
+    "15":  {
+               "name":  "Desierto",
+               "pk":  0
+           },
+    "140":  {
+                "name":  "Dungeon Veriil.",
+                "pk":  0
+            },
+    "86":  {
+               "name":  "Bosque central.",
+               "pk":  0
+           },
+    "127":  {
+                "name":  "Mar Oriental.",
+                "pk":  0
+            },
+    "186":  {
+                "name":  "Bosque Elfico.",
+                "pk":  0
+            },
+    "500":  {
+                "name":  "Local PvE Arena",
+                "pk":  1
+            },
+    "26":  {
+               "name":  "Bosque este de la CiÃ©naga de las cobras",
+               "pk":  0
+           },
+    "138":  {
+                "name":  "Mar Oriental. (oeste de Dungeon Inferno)",
+                "pk":  0
+            },
+    "232":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            },
+    "10":  {
+               "name":  "Bosque oeste de Ullathorpe",
+               "pk":  0
+           },
+    "245":  {
+                "name":  "Mar al sur de Arghal.",
+                "pk":  0
+            },
+    "206":  {
+                "name":  "Mar al norte del desierto.",
+                "pk":  0
+            },
+    "7":  {
+              "name":  "Bosque norte de Ullathorpe",
+              "pk":  0
+          },
+    "259":  {
+                "name":  "Mar al sur del Dungeon Veriil.",
+                "pk":  0
+            },
+    "98":  {
+               "name":  "Mar al norte de Arkhein y al sur del desierto.",
+               "pk":  0
+           },
+    "63":  {
+               "name":  "Ciudad de Lindos.",
+               "pk":  1
+           },
+    "124":  {
+                "name":  "Mar al este de Arghal.",
+                "pk":  0
+            },
+    "148":  {
+                "name":  "Mar al este de Arghal.",
+                "pk":  0
+            },
+    "220":  {
+                "name":  "Mar Austral.",
+                "pk":  0
+            },
+    "161":  {
+                "name":  "Bosque al este de Banderbill.",
+                "pk":  0
+            },
+    "84":  {
+               "name":  "Bosque al noreste de Ullathorpe.",
+               "pk":  0
+           },
+    "233":  {
+                "name":  "Mar Occidental.",
+                "pk":  0
+            }
+}

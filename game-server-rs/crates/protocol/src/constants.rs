@@ -1,0 +1,6 @@
+pub const MAP_MIN_COORDINATE: i32 = 1;
+pub const MAP_MAX_COORDINATE: i32 = 100;
+pub const CLIENT_VIEW_RANGE_X: i32 = 10;
+pub const CLIENT_VIEW_RANGE_Y: i32 = 10;
+pub const CLIENT_VIEW_EXTRA_BOTTOM_Y: i32 = 1;
+pub const MAX_SNAPSHOT_CHUNK_CHARACTERS: usize = 60_000;

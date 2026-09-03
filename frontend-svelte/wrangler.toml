@@ -1,0 +1,11 @@
+name = "openao-frontend"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+[vars]
+PUBLIC_SITE_URL = "https://aoweb.app"
+
+# Hyperdrive binding for PostgreSQL
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "<your-hyperdrive-config-id>"

@@ -1,0 +1,9 @@
+# Rust build configuration for OpenAO game server.
+# target-cpu=native enables SIMD and other CPU-specific optimizations
+# when building on the same architecture that runs the server.
+
+[target.'cfg(not(target_env = "msvc"))']
+rustflags = ["-C", "target-cpu=native"]
+
+[target.'cfg(target_env = "msvc")']
+rustflags = ["-C", "target-cpu=native"]

@@ -1,0 +1,89 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend-svelte/**"
+      - "packages/protocol/**"
+  pull_request:
+    paths:
+      - "frontend-svelte/**"
+      - "packages/protocol/**"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build protocol package
+        working-directory: packages/protocol
+        run: pnpm build
+
+      - name: Run protocol tests
+        working-directory: packages/protocol
+        run: pnpm test
+
+      - name: Type check frontend
+        working-directory: frontend-svelte
+        run: pnpm check
+
+      - name: Build frontend
+        working-directory: frontend-svelte
+        run: pnpm build
+        env:
+          VITE_GAME_WS_URL: ${{ vars.GAME_WS_URL || 'ws://localhost:7666' }}
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build protocol package
+        working-directory: packages/protocol
+        run: pnpm build
+
+      - name: Build frontend
+        working-directory: frontend-svelte
+        run: pnpm build
+        env:
+          VITE_GAME_WS_URL: ${{ vars.GAME_WS_URL }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend-svelte/.svelte-kit/cloudflare --project-name=openao

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --font-geist-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-geist-mono: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+}
+
+body {
+  font-family: var(--font-geist-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

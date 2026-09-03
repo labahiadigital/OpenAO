@@ -1,0 +1,9 @@
+{
+  "name": "AOWeb - Argentum Online",
+  "short_name": "AOWeb",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05080d",
+  "theme_color": "#fbbf24",
+  "icons": []
+}

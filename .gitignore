@@ -9,10 +9,21 @@ test-results/
 playwright-report/
 .opencode/
 
+# Rust
+target/
+*.db
+*.db-shm
+*.db-wal
+
+# SvelteKit
+.svelte-kit/
+
+# Environment
 .env*
 !.env.example
 !.env.docker.example
 
+# Secrets
 *.pem
 *.key
 *.p12

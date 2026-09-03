@@ -1,0 +1,39 @@
+{
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "checkJs": false,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ES2022",
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "src/lib/components/react-originals/**",
+    "src/lib/game/core/useAssetPipeline.ts",
+    "src/lib/game/core/useCombatController.ts",
+    "src/lib/game/core/useSceneController.ts",
+    "src/lib/game/core/useRendererBootstrap.ts",
+    "src/lib/game/core/useRemoteEntityController.ts",
+    "src/lib/game/core/useNpcAdminTools.ts",
+    "src/lib/game/core/useKeyboardGameplay.ts",
+    "src/lib/game/core/useHudStateController.ts",
+    "src/lib/game/core/useMovementSync.ts",
+    "src/lib/game/core/MapRendererCore.tsx",
+    "src/lib/game/session/useGameSession.ts",
+    "src/lib/game/session/useOutgoingRequests.ts",
+    "src/lib/game/hooks-react/**",
+    "src/lib/game/overlays/*.tsx",
+    "src/lib/game/admin/npcInspector.tsx",
+    "src/lib/game/diagnostics/useClientInputDiagnostics.ts",
+    "src/lib/game/rendering/characterRenderer.ts",
+    "src/lib/server/migrate.ts"
+  ]
+}

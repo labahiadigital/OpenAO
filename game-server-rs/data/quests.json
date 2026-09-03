@@ -1,0 +1,78 @@
+[
+  {
+    "id": 1,
+    "name": "Primeros pasos",
+    "description": "Habla con el guardia de la ciudad para comenzar tu aventura.",
+    "npc_giver": 1,
+    "min_level": 1,
+    "objectives": [{"type": "talk_npc", "npc_type": 59}],
+    "reward": {"gold": 50, "exp": 100}
+  },
+  {
+    "id": 2,
+    "name": "Caza de serpientes",
+    "description": "Elimina 5 serpientes que acechan los caminos cercanos.",
+    "npc_giver": 1,
+    "min_level": 1,
+    "prerequisite": 1,
+    "objectives": [{"type": "kill_npc", "npc_type": 2, "count": 5}],
+    "reward": {"gold": 100, "exp": 200, "items": [[37, 5]]}
+  },
+  {
+    "id": 3,
+    "name": "Recolector de pieles",
+    "description": "Recolecta 10 pieles de lobo para el peletero.",
+    "npc_giver": 59,
+    "min_level": 3,
+    "objectives": [{"type": "collect_item", "item_id": 573, "count": 10}],
+    "reward": {"gold": 200, "exp": 350},
+    "repeatable": true
+  },
+  {
+    "id": 4,
+    "name": "Explorador del bosque",
+    "description": "Viaja al mapa del Bosque Oscuro para inspeccionar la zona.",
+    "npc_giver": 1,
+    "min_level": 5,
+    "prerequisite": 2,
+    "objectives": [{"type": "visit_map", "map_id": 44}],
+    "reward": {"gold": 150, "exp": 400}
+  },
+  {
+    "id": 5,
+    "name": "Cazador veterano",
+    "description": "Alcanza el nivel 10 para demostrar tu valía.",
+    "npc_giver": 59,
+    "min_level": 1,
+    "objectives": [{"type": "reach_level", "level": 10}],
+    "reward": {"gold": 500, "exp": 1000, "items": [[175, 1]]}
+  },
+  {
+    "id": 6,
+    "name": "Amenaza esquelética",
+    "description": "Derrota 10 esqueletos en las catacumbas.",
+    "npc_giver": 59,
+    "min_level": 8,
+    "objectives": [{"type": "kill_npc", "npc_type": 5, "count": 10}],
+    "reward": {"gold": 300, "exp": 600}
+  },
+  {
+    "id": 7,
+    "name": "Emboscada de orcos",
+    "description": "Elimina 8 orcos que asedian las aldeas.",
+    "npc_giver": 1,
+    "min_level": 12,
+    "prerequisite": 4,
+    "objectives": [{"type": "kill_npc", "npc_type": 44, "count": 8}],
+    "reward": {"gold": 500, "exp": 800, "items": [[394, 1]]}
+  },
+  {
+    "id": 8,
+    "name": "Viaje al desierto",
+    "description": "Explora el mapa del Gran Desierto.",
+    "npc_giver": 59,
+    "min_level": 15,
+    "objectives": [{"type": "visit_map", "map_id": 80}],
+    "reward": {"gold": 400, "exp": 900}
+  }
+]
