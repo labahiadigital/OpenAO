@@ -270,10 +270,10 @@ export function renderRemoteEntities(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      // Sub-pixel float position — no rounding.  The GPU's nearest-neighbour
-      // sampler keeps tile edges sharp while allowing smooth interpolation.
-      c.x = (visualX - 1) * TILE_SIZE;
-      c.y = (visualY - 1) * TILE_SIZE;
+      // Integer pixel position — with roundPixels:true and nearest-neighbour
+      // filtering, sprites must sit on integer pixels to avoid shimmer.
+      c.x = Math.floor((visualX - 1) * TILE_SIZE);
+      c.y = Math.floor((visualY - 1) * TILE_SIZE);
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = e.dead ? 0.45 : 1;
@@ -363,9 +363,9 @@ export function renderNpcs(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      // Sub-pixel float position — no rounding (same reasoning as entities).
-      c.x = (visualX - 1) * TILE_SIZE;
-      c.y = (visualY - 1) * TILE_SIZE;
+      // Integer pixel position (same reasoning as entities above).
+      c.x = Math.floor((visualX - 1) * TILE_SIZE);
+      c.y = Math.floor((visualY - 1) * TILE_SIZE);
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = npc.dead ? 0.45 : 1;

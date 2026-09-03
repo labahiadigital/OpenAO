@@ -12,21 +12,40 @@ export type ViewBounds = {
   viewH: number;
 };
 
+// ── Smooth-follow camera (LERP) ──────────────────────────────────────
+//
+// Instead of rigidly copying the player position every frame
+// (`worldContainer.x = cw/2 - player.x`), we maintain an internal
+// "current" camera position that chases a "target" via linear
+// interpolation.  This absorbs micro-freezes between walk steps and
+// produces a buttery-smooth scroll.
+//
+// The final worldContainer position is Math.floor'd so that every
+// sprite sits on integer pixel boundaries → no nearest-neighbour
+// shimmer on tile edges.
+
+let currentCamX = -1;
+let currentCamY = -1;
+
+/** How quickly the camera catches up to the target (0–1 per frame). */
+const LERP_FACTOR = 0.18;
+
+/** Distance (px) under which we snap instead of interpolating. */
+const SNAP_THRESHOLD = 0.5;
+
 /**
- * Position the world container so the player tile is centred on screen.
- *
- * `offsetPx` / `offsetPy` are **pixel** offsets produced by the movement
- * interpolation system (0 when idle, sliding from −TILE_SIZE*delta → 0
- * during a walk step).  They replicate the original engine's
- * `offsetCounterX` / `offsetCounterY`.
- *
- * IMPORTANT — NO Math.round / Math.floor here.
- * Rounding the camera position to integers when the scroll speed has a
- * fractional component causes alternating 2px / 3px frame advances
- * ("temporal aliasing") which the eye perceives as violent jitter.
- * Allowing sub-pixel floats lets the GPU's texture sampler handle the
- * interpolation smoothly.  Tile edges stay sharp thanks to
- * `scaleMode: "nearest"` on every texture.
+ * Teleport the camera to a specific world position immediately
+ * (no interpolation).  Call this on map change or connect.
+ */
+export function resetCamera(targetX: number, targetY: number): void {
+  currentCamX = targetX;
+  currentCamY = targetY;
+}
+
+/**
+ * Called once per Pixi ticker frame.  Computes the target camera
+ * focus point from the player's tile + sub-tile offset, LERPs the
+ * internal camera toward it, and positions the worldContainer.
  */
 export function updateCamera(
   app: Application,
@@ -38,8 +57,39 @@ export function updateCamera(
 ): void {
   const cw = app.screen.width;
   const ch = app.screen.height;
-  worldContainer.x = cw / 2 - (px - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPx;
-  worldContainer.y = ch / 2 - (py - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPy;
+
+  // Target = exact world-pixel position of the player's visual centre.
+  const targetX = (px - 1) * TILE_SIZE + TILE_SIZE / 2 + offsetPx;
+  const targetY = (py - 1) * TILE_SIZE + TILE_SIZE / 2 + offsetPy;
+
+  // First frame or after a teleport / map change → snap immediately.
+  if (currentCamX < 0) {
+    currentCamX = targetX;
+    currentCamY = targetY;
+  }
+
+  // LERP toward the target.
+  const dx = targetX - currentCamX;
+  const dy = targetY - currentCamY;
+  if (Math.abs(dx) < SNAP_THRESHOLD && Math.abs(dy) < SNAP_THRESHOLD) {
+    currentCamX = targetX;
+    currentCamY = targetY;
+  } else {
+    currentCamX += dx * LERP_FACTOR;
+    currentCamY += dy * LERP_FACTOR;
+  }
+
+  // Final position: Math.floor so every tile sits on an integer pixel.
+  // Because the LERP has already smoothed out micro-irregularities,
+  // floor produces a steady 2-or-3 px advance rather than the chaotic
+  // alternation that happens when rounding a jerky raw position.
+  worldContainer.x = Math.floor(cw / 2 - currentCamX);
+  worldContainer.y = Math.floor(ch / 2 - currentCamY);
+}
+
+/** Expose internal camera for the player container positioning. */
+export function getCameraPosition(): { x: number; y: number } {
+  return { x: currentCamX, y: currentCamY };
 }
 
 export function computeViewBounds(

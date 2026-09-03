@@ -41,6 +41,8 @@
   } from "$lib/game/rendering/groundItemRenderer";
   import {
     updateCamera,
+    resetCamera,
+    getCameraPosition,
     computeViewBounds,
     handleCanvasClick,
   } from "$lib/game/rendering/cameraController";
@@ -60,9 +62,6 @@
   let groundItemState: GroundItemContainerState = createGroundItemState();
   let initError = $state<string | null>(null);
   let lastRenderedMapId = 0;
-
-  // Track the last anim we've re-based so we only do it once per slide.
-  let lastRebasedAnimStart = 0;
 
   const textureSourceCache: TextureSourceCache = new Map();
   const pendingLoads = new Set<number>();
@@ -89,57 +88,38 @@
     if (mapState.currentMapId !== lastRenderedMapId) {
       clearAll();
       lastRenderedMapId = mapState.currentMapId;
+      // Teleport the LERP camera to the new position immediately so it
+      // doesn't slowly pan from the old map's coordinates.
+      resetCamera(
+        (px - 1) * TILE_SIZE + TILE_SIZE / 2,
+        (py - 1) * TILE_SIZE + TILE_SIZE / 2,
+      );
     }
 
-    // ── Smooth camera / player slide ──────────────────────────────
-    // While the player slides between tiles the logical pos has already
-    // snapped to the destination.  We compute a *pixel* offset that
-    // decreases linearly from −TILE_SIZE*delta → 0 over `durationMs`.
-    //
-    // CRITICAL: we use the Pixi ticker's own timestamp (monotonic,
-    // aligned to rAF) rather than a raw `performance.now()` call so
-    // the interpolation factor is perfectly in-phase with the frame
-    // that will be presented.  This avoids micro-jitter caused by
-    // `performance.now()` being sampled at an arbitrary point inside
-    // the frame budget.
-    const tickerNow = app.ticker.lastTime;   // ms since Pixi init, rAF-aligned
+    // ── Sub-tile interpolation offset ─────────────────────────────
+    // The logical pos (px,py) has already snapped to the destination
+    // tile.  We compute a pixel offset that slides from −TILE_SIZE →0
+    // over `durationMs`, giving the visual "glide" between tiles.
     let camOffsetPx = 0;
     let camOffsetPy = 0;
     let isAnimating = false;
     const anim = gameState.playerMoveAnim;
     if (anim) {
-      // Re-base the animation start from performance.now() space into
-      // Pixi-ticker space the first time we see a new anim.  This is a
-      // one-time conversion: GameView records `performance.now()` but
-      // the render loop uses `app.ticker.lastTime`.
-      if (anim.startedAt !== lastRebasedAnimStart) {
-        const perfNow = performance.now();
-        const drift = perfNow - anim.startedAt;      // how long ago it started
-        anim.startedAt = tickerNow - drift;           // convert to ticker space
-        lastRebasedAnimStart = anim.startedAt;
-      }
-      const elapsed = tickerNow - anim.startedAt;
+      const elapsed = performance.now() - anim.startedAt;
       const t = Math.min(1, elapsed / anim.durationMs); // 0→1
       camOffsetPx = -TILE_SIZE * anim.dx * (1 - t);
       camOffsetPy = -TILE_SIZE * anim.dy * (1 - t);
       isAnimating = t < 1;
-
-      // Do NOT null-out playerMoveAnim when t >= 1.
-      // If the player is walking continuously, the next doMove() call
-      // will overwrite this anim with the next step.  If we null it
-      // here, there is a 1-16ms window (setTimeout jitter) where no
-      // anim is active → offset snaps to 0 → visible micro-freeze.
-      // When t >= 1 the offset is already 0, so keeping the stale
-      // anim is harmless.  It will be replaced or naturally expire
-      // once the player stops and a grace period (WALK_STEP_MS * 1.5)
-      // passes — see below.
-      if (t >= 1 && (tickerNow - anim.startedAt) > anim.durationMs * 1.5) {
-        // Player has been idle for >50% longer than a step duration.
-        // Safe to clean up.
-        gameState.playerMoveAnim = null;
-      }
+      // Don't null the anim at t>=1: the next doMove() will replace it.
+      // This prevents a 1-16ms gap (setTimeout jitter) where offset
+      // snaps to 0 → visible micro-freeze between walk steps.
     }
 
+    // ── Camera: smooth LERP follow ─────────────────────────────────
+    // updateCamera internally LERPs toward the target, absorbing any
+    // micro-irregularities from the step timer.  Math.floor is applied
+    // inside to the *amortised* position, guaranteeing integer-pixel
+    // tile boundaries → no nearest-neighbour shimmer.
     updateCamera(app, worldContainer, px, py, camOffsetPx, camOffsetPy);
     const bounds = computeViewBounds(app, px, py, mp.w, mp.h);
 
@@ -154,15 +134,15 @@
 
     renderPlayer(PIXI, entityState, gameState.hud, px, py, createSprite);
 
-    // Single source of truth for the player container world position.
-    // NO rounding — must use the exact same float precision as the camera
-    // so the player is always perfectly centred on screen with zero
-    // oscillation.  If we Math.round here but the camera uses floats
-    // (or vice-versa), the ±0.5px discrepancy flips each frame and
-    // the entire world jitters relative to the character.
+    // Position the player container in world space.
+    // We use the raw target position (not the LERP'd camera), but
+    // Math.floor it so the player sprite sits on integer pixels.
+    // The LERP camera is close enough that the ±0.5px difference is
+    // invisible — and both values are floor'd to integers, so they
+    // never oscillate relative to each other.
     if (entityState.playerContainer) {
-      entityState.playerContainer.x = (px - 1) * TILE_SIZE + camOffsetPx;
-      entityState.playerContainer.y = (py - 1) * TILE_SIZE + camOffsetPy;
+      entityState.playerContainer.x = Math.floor((px - 1) * TILE_SIZE + camOffsetPx);
+      entityState.playerContainer.y = Math.floor((py - 1) * TILE_SIZE + camOffsetPy);
     }
 
     // Keep the player marked as "moving" while sliding so the walk cycle
@@ -211,24 +191,24 @@
       if (destroyed || !container) return;
       app = new PIXI.Application();
 
-      // resolution: 1 keeps a 1:1 mapping between canvas CSS pixels and
-      // back-buffer pixels.  This avoids the double-rounding trap where
-      // roundPixels snaps sprite-local coords to integers but a non-1x
-      // resolution then multiplies them by a fractional DPR, re-introducing
-      // sub-pixel offsets and causing tile-edge shimmer.
-      //
-      // roundPixels: false — we deliberately allow sub-pixel positioning
-      // so the camera can scroll at non-integer speeds without the 2px/3px
-      // temporal aliasing that Math.round causes.  Tile edges stay crisp
-      // thanks to scaleMode "nearest" set below.
+      // Match the device's physical pixel density so the browser does not
+      // resample the canvas via CSS scaling (which causes blur / pixel-crawl
+      // on Windows with 125%/150% display scaling).
+      // roundPixels: true snaps every sprite draw to the nearest integer
+      // pixel *within the back-buffer*, preventing sub-pixel shimmer on
+      // tile edges with nearest-neighbour filtering.
+      // The LERP camera ensures the worldContainer.x/y values fed to
+      // Pixi are already smoothly varying integers (via Math.floor),
+      // so roundPixels won't cause 2px/3px alternation.
+      const dpr = window.devicePixelRatio || 1;
       await app.init({
         resizeTo: container,
         background: "#0a0f0a",
         antialias: false,
-        resolution: 1,
-        autoDensity: false,
+        resolution: dpr,
+        autoDensity: true,
         preference: "webgpu",
-        roundPixels: false,
+        roundPixels: true,
       });
       if (destroyed) { app.destroy(true); app = undefined; return; }
 
