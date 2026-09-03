@@ -18,7 +18,7 @@
   import OverviewModal from "./OverviewModal.svelte";
   import DebugOverlay from "./DebugOverlay.svelte";
   import { gameSession } from "$lib/game/session/gameSession.svelte";
-  import { gameState, WALK_STEP_MS } from "$lib/game/state/gameState.svelte";
+  import { gameState } from "$lib/game/state/gameState.svelte";
   import { assetStore } from "$lib/game/state/assetStore.svelte";
   import {
     registerAllPacketHandlers,
@@ -26,13 +26,11 @@
   } from "$lib/game/session/registerPacketHandlers";
   import {
     sendDialog,
-    sendPosition,
-    sendChangeHeading,
     sendAttackMelee,
     sendPickupItem,
     sendToggleSafe,
   } from "$lib/game/session/outgoingRequests";
-  import { mapState } from "$lib/game/state/mapState.svelte";
+  import { pressDirection, releaseDirection, releaseAllDirections } from "$lib/game/input/movementPoller";
   import { onDestroy, onMount } from "svelte";
 
   const WS_URL = import.meta.env.VITE_GAME_WS_URL || "ws://localhost:7666";
@@ -46,96 +44,11 @@
   let castBarRaf: number | undefined;
   let connectCalled = false;
 
-  // ── Movement system (mirrors the original Engine.check / moveTo loop) ──
-  // We track which direction keys are currently held down and use our own
-  // timer-based loop that fires every WALK_STEP_MS while at least one key
-  // is pressed.  This gives us:
-  //  • Precise timing independent of OS key-repeat rate
-  //  • Smooth chaining of tile-step animations
-  //  • Priority: last-pressed direction wins (like the original)
-  const heldDirections = new Set<number>(); // heading values: 1=up, 2=down, 3=right, 4=left
-  let directionPriority: number[] = []; // most-recently pressed first
-  let moveLoopTimer: ReturnType<typeof setTimeout> | undefined;
-  let lastStepTime = 0;
-
-  function startMoveLoop() {
-    if (moveLoopTimer !== undefined) return;
-    // First step: execute immediately and record the time.
-    attemptStep();
-  }
-
-  function stopMoveLoop() {
-    if (moveLoopTimer !== undefined) {
-      clearTimeout(moveLoopTimer);
-      moveLoopTimer = undefined;
-    }
-  }
-
-  function attemptStep() {
-    moveLoopTimer = undefined;
-    if (heldDirections.size === 0) return;
-    if (gameSession.connectionState !== "connected" && gameSession.connectionState !== "authenticated") return;
-
-    let heading: number | undefined;
-    for (const h of directionPriority) {
-      if (heldDirections.has(h)) { heading = h; break; }
-    }
-    if (heading === undefined) return;
-
-    const now = performance.now();
-    const elapsed = now - lastStepTime;
-
-    if (elapsed >= WALK_STEP_MS) {
-      doMove(heading, now);
-      lastStepTime = now;
-      // Schedule next step exactly WALK_STEP_MS from now.
-      moveLoopTimer = setTimeout(attemptStep, WALK_STEP_MS);
-    } else {
-      // Wait the remaining time.
-      moveLoopTimer = setTimeout(attemptStep, WALK_STEP_MS - elapsed);
-    }
-  }
-
-  function doMove(heading: number, now: number) {
-    const { x, y } = gameState.hud.pos;
-    const dx = heading === 3 ? 1 : heading === 4 ? -1 : 0;
-    const dy = heading === 2 ? 1 : heading === 1 ? -1 : 0;
-    const nx = x + dx;
-    const ny = y + dy;
-
-    if (mapState.isTileBlocked(nx, ny)) {
-      sendChangeHeading(heading);
-      return;
-    }
-
-    for (const [, npc] of gameState.remoteNpcs) {
-      if (npc.x === nx && npc.y === ny) {
-        sendChangeHeading(heading);
-        return;
-      }
-    }
-
-    for (const [, e] of gameState.remoteEntities) {
-      if (e.x === nx && e.y === ny && !e.dead) {
-        sendChangeHeading(heading);
-        return;
-      }
-    }
-
-    const tick = gameState.nextMoveTick();
-    gameState.predictionBuffer.record(tick, { heading }, { x: nx, y: ny });
-    gameState.inputSender.record(tick, { heading });
-    gameState.mergeHud({ pos: { x: nx, y: ny }, heading });
-
-    gameState.playerMoveAnim = {
-      startedAt: now,
-      durationMs: WALK_STEP_MS,
-      dx,
-      dy,
-    };
-
-    sendPosition(heading, tick);
-  }
+  // ── Movement system: Input Polling ──────────────────────────────
+  // keydown/keyup ONLY set boolean flags via pressDirection/releaseDirection.
+  // The actual walk steps are executed by pollMovement() (movementPoller.ts)
+  // which is called from the Pixi ticker every frame — completely decoupled
+  // from the OS key-repeat delay.
 
   onMount(() => {
     assetStore.load();
@@ -178,11 +91,7 @@
     const heading = KEY_TO_HEADING[e.key];
     if (heading !== undefined) {
       e.preventDefault();
-      if (!heldDirections.has(heading)) {
-        heldDirections.add(heading);
-        directionPriority = [heading, ...directionPriority.filter(h => h !== heading)];
-      }
-      startMoveLoop();
+      pressDirection(heading);
       return;
     }
 
@@ -201,11 +110,7 @@
   function handleKeyup(e: KeyboardEvent) {
     const heading = KEY_TO_HEADING[e.key];
     if (heading !== undefined) {
-      heldDirections.delete(heading);
-      directionPriority = directionPriority.filter(h => h !== heading);
-      if (heldDirections.size === 0) {
-        stopMoveLoop();
-      }
+      releaseDirection(heading);
     }
   }
 
@@ -242,12 +147,11 @@
 
   onDestroy(() => {
     if (pingInterval) clearInterval(pingInterval);
-    stopMoveLoop();
     gameSession.disconnect();
   });
 </script>
 
-<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} onblur={() => { heldDirections.clear(); directionPriority = []; stopMoveLoop(); }} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} onblur={() => releaseAllDirections()} />
 
 <!-- Connection overlay -->
 {#if !isConnected}

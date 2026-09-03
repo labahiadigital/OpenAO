@@ -21,6 +21,9 @@ const BODY_ANIMATION_CYCLE_MS = 400;
 const WALK_DURATION_MS = 300;
 
 export type EntityRenderState = {
+  /** The base body/head IDs (heading-independent). Used to detect sprite rebuild. */
+  bodyId: number;
+  headId: number;
   bodyGrh: number;
   headGrh: number;
   heading: number;
@@ -184,10 +187,12 @@ export function clearEntityState(state: EntityContainerState) {
   state.entityMoveTimes.clear();
 }
 
-function buildRenderState(bodyGrhId: number, headGrhId: number, heading: number, dead: boolean, nc: number): EntityRenderState {
+function buildRenderState(bodyId: number, headId: number, bodyGrhId: number, headGrhId: number, heading: number, dead: boolean, nc: number): EntityRenderState {
   const bodyAnim = bodyGrhId > 0 ? getAnimationInfo(bodyGrhId) : null;
   const headAnim = headGrhId > 0 ? getAnimationInfo(headGrhId) : null;
   return {
+    bodyId,
+    headId,
     bodyGrh: bodyGrhId,
     headGrh: headGrhId,
     heading,
@@ -205,6 +210,24 @@ function buildRenderState(bodyGrhId: number, headGrhId: number, heading: number,
   };
 }
 
+/**
+ * When the heading changes but the body/head IDs stay the same,
+ * update only the animation frames (cheap) instead of destroying
+ * and rebuilding the entire Pixi container (expensive).
+ */
+function updateRenderStateHeading(rs: EntityRenderState, bodyGrhId: number, headGrhId: number, heading: number) {
+  rs.heading = heading;
+  rs.bodyGrh = bodyGrhId;
+  rs.headGrh = headGrhId;
+  const bodyAnim = bodyGrhId > 0 ? getAnimationInfo(bodyGrhId) : null;
+  const headAnim = headGrhId > 0 ? getAnimationInfo(headGrhId) : null;
+  rs.bodyAnimFrames = bodyAnim?.frames;
+  rs.bodyFrameCount = bodyAnim?.frameCount ?? 1;
+  rs.headAnimFrames = headAnim?.frames;
+  rs.headFrameCount = headAnim?.frameCount ?? 1;
+  rs.lastFrameIdx = -1; // force frame refresh on next animate
+}
+
 export function renderRemoteEntities(
   PIXI: typeof import("pixi.js"),
   entityLayer: PixiContainer,
@@ -218,19 +241,23 @@ export function renderRemoteEntities(
   for (const [id, e] of remoteEntities) {
     active.add(id);
     const nc = nameColor(e);
-    const bodyGrhId = e.bodyGrh
-      ? assetStore.getBodyGrhId(e.bodyGrh, e.heading)
+    const eBodyId = e.bodyGrh ?? 0;
+    const eHeadId = e.headGrh ?? 0;
+    const bodyGrhId = eBodyId > 0
+      ? assetStore.getBodyGrhId(eBodyId, e.heading)
       : 0;
-    const headGrhId = e.headGrh
-      ? assetStore.getHeadGrhId(e.headGrh, e.heading)
+    const headGrhId = eHeadId > 0
+      ? assetStore.getHeadGrhId(eHeadId, e.heading)
       : 0;
 
     const prev = state.entityRenderStates.get(id);
+    // Only rebuild the container when the base identity changes (body/head
+    // ID, dead state, name color).  A mere heading change is handled by
+    // swapping animation frames — orders of magnitude cheaper.
     const needsRebuild =
       !prev ||
-      prev.bodyGrh !== bodyGrhId ||
-      prev.headGrh !== headGrhId ||
-      prev.heading !== e.heading ||
+      prev.bodyId !== eBodyId ||
+      prev.headId !== eHeadId ||
       prev.dead !== e.dead ||
       prev.nameColor !== nc;
 
@@ -244,7 +271,7 @@ export function renderRemoteEntities(
         PIXI,
         bodyGrhId,
         headGrhId,
-        e.bodyGrh ?? 0,
+        eBodyId,
         e.name,
         nc,
         createSprite,
@@ -253,8 +280,12 @@ export function renderRemoteEntities(
       entityLayer.addChild(c);
       state.entityContainers.set(id, c);
       if (built.hasRealSprite || bodyGrhId === 0) {
-        state.entityRenderStates.set(id, buildRenderState(bodyGrhId, headGrhId, e.heading, e.dead, nc));
+        state.entityRenderStates.set(id, buildRenderState(eBodyId, eHeadId, bodyGrhId, headGrhId, e.heading, e.dead, nc));
       }
+    } else if (prev && prev.heading !== e.heading) {
+      // Heading changed but body/head identity is the same — just update
+      // the animation frame set (no container rebuild, no Text recreation).
+      updateRenderStateHeading(prev, bodyGrhId, headGrhId, e.heading);
     }
 
     if (c) {
@@ -270,11 +301,14 @@ export function renderRemoteEntities(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      // Integer pixel position — with roundPixels:true and nearest-neighbour
-      // filtering, sprites must sit on integer pixels to avoid shimmer.
       c.x = Math.floor((visualX - 1) * TILE_SIZE);
       c.y = Math.floor((visualY - 1) * TILE_SIZE);
-      c.zIndex = Math.round(visualY) * 10 + 5;
+
+      // Only update zIndex when the rounded Y changes — avoids
+      // triggering Pixi's sortableChildren sort every frame.
+      const newZ = Math.round(visualY) * 10 + 5;
+      if (c.zIndex !== newZ) c.zIndex = newZ;
+
       c.visible = true;
       c.alpha = e.dead ? 0.45 : 1;
 
@@ -319,11 +353,11 @@ export function renderNpcs(
       idHead > 0 ? assetStore.getHeadGrhId(idHead, npc.heading) : 0;
 
     const prev = state.npcRenderStates.get(id);
+    // Only rebuild when the NPC's visual identity changes — NOT on heading.
     const needsRebuild =
       !prev ||
-      prev.bodyGrh !== bodyGrhId ||
-      prev.headGrh !== headGrhId ||
-      prev.heading !== npc.heading ||
+      prev.bodyId !== idBody ||
+      prev.headId !== idHead ||
       prev.dead !== npc.dead;
 
     let c = state.npcContainers.get(id);
@@ -346,8 +380,10 @@ export function renderNpcs(
       entityLayer.addChild(c);
       state.npcContainers.set(id, c);
       if (built.hasRealSprite || bodyGrhId === 0) {
-        state.npcRenderStates.set(id, buildRenderState(bodyGrhId, headGrhId, npc.heading, npc.dead, 0));
+        state.npcRenderStates.set(id, buildRenderState(idBody, idHead, bodyGrhId, headGrhId, npc.heading, npc.dead, 0));
       }
+    } else if (prev && prev.heading !== npc.heading) {
+      updateRenderStateHeading(prev, bodyGrhId, headGrhId, npc.heading);
     }
 
     if (c) {
@@ -363,10 +399,12 @@ export function renderNpcs(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      // Integer pixel position (same reasoning as entities above).
       c.x = Math.floor((visualX - 1) * TILE_SIZE);
       c.y = Math.floor((visualY - 1) * TILE_SIZE);
-      c.zIndex = Math.round(visualY) * 10 + 5;
+
+      const newZ = Math.round(visualY) * 10 + 5;
+      if (c.zIndex !== newZ) c.zIndex = newZ;
+
       c.visible = true;
       c.alpha = npc.dead ? 0.45 : 1;
 
@@ -568,13 +606,18 @@ export function renderPlayer(
 
   const prev = state.playerRenderState;
   const nc = nameColor({ dead: hud.dead, nameColor: hud.nameColor });
+  // Only rebuild the player container when the base identity changes.
+  // Heading-only changes swap animation frames (fast path).
   const needsRebuild =
     !prev ||
-    prev.bodyGrh !== bodyGrhId ||
-    prev.headGrh !== headGrhId ||
-    prev.heading !== heading ||
+    prev.bodyId !== idBody ||
+    prev.headId !== idHead ||
     prev.dead !== hud.dead ||
     prev.nameColor !== nc;
+
+  if (!needsRebuild && prev && prev.heading !== heading) {
+    updateRenderStateHeading(prev, bodyGrhId, headGrhId, heading);
+  }
 
   if (needsRebuild) {
     while (pc.children.length > 0) {
@@ -670,7 +713,7 @@ export function renderPlayer(
       pc.addChild(t);
     }
 
-    state.playerRenderState = buildRenderState(bodyGrhId, headGrhId, heading, hud.dead, nc);
+    state.playerRenderState = buildRenderState(idBody, idHead, bodyGrhId, headGrhId, heading, hud.dead, nc);
   }
 
   // NOTE: pc.x / pc.y are NOT set here.  The caller (PixiApp.svelte)

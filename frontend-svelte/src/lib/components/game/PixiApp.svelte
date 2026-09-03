@@ -5,6 +5,7 @@
   import { mapState } from "$lib/game/state/mapState.svelte";
   import { gameSession } from "$lib/game/session/gameSession.svelte";
   import { TILE_SIZE } from "$lib/game/lib/viewport";
+  import { pollMovement } from "$lib/game/input/movementPoller";
   import type { GraphicInfo } from "$lib/game/engine/assetLoader";
   import type {
     Application,
@@ -241,6 +242,8 @@
 
       app.ticker.add(() => {
         try {
+          // Poll movement inputs every frame — decoupled from OS key repeat.
+          pollMovement();
           const mapId = gameState.hud.map;
           if (mapId > 0 && (mapId !== mapState.currentMapId) && !mapState.loading) {
             mapState.load(mapId);

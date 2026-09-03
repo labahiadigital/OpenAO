@@ -205,9 +205,14 @@ class GameState {
   sceneReady: boolean = $state(false);
   pingMs: number | null = $state(null);
   pingText: string = $state("Ping: -- ms");
-  remoteEntities: Map<number, RemoteEntity> = $state(new Map());
-  remoteNpcs: Map<number, RemoteNpc> = $state(new Map());
-  groundItems: Map<string, GroundItem> = $state(new Map());
+  // ── Entity maps: NOT reactive ($state) ──────────────────────────
+  // These maps are read directly by the Pixi render loop every frame.
+  // Making them $state would force Svelte to diff the entire Map on
+  // every packet, which causes massive overhead with many NPCs.
+  // The Pixi ticker reads them imperatively — no reactivity needed.
+  remoteEntities: Map<number, RemoteEntity> = new Map();
+  remoteNpcs: Map<number, RemoteNpc> = new Map();
+  groundItems: Map<string, GroundItem> = new Map();
 
   readonly interpolationBuffers = new Map<number, InterpolationBuffer<{ x: number; y: number; heading: number }>>();
   readonly predictionBuffer = new PredictionBuffer<{ heading: number }, { x: number; y: number }>({ historyCapacity: 128, maxReplaySteps: 32 });
@@ -283,7 +288,6 @@ class GameState {
     if (entity) {
       entity.chatText = text;
       entity.chatTextExpireAt = Date.now() + 5000;
-      this.remoteEntities.set(entityId, { ...entity });
     }
   }
 
@@ -316,30 +320,24 @@ class GameState {
   }
 
   upsertNpc(npc: RemoteNpc) {
-    const next = new Map(this.remoteNpcs);
-    next.set(npc.id, npc);
-    this.remoteNpcs = next;
+    this.remoteNpcs.set(npc.id, npc);
   }
 
   removeNpc(id: number) {
-    const next = new Map(this.remoteNpcs);
-    next.delete(id);
-    this.remoteNpcs = next;
+    this.remoteNpcs.delete(id);
     this.interpolationBuffers.delete(id);
   }
 
   upsertEntity(entity: RemoteEntity) {
-    const next = new Map(this.remoteEntities);
-    next.set(entity.id, entity);
-    this.remoteEntities = next;
+    this.remoteEntities.set(entity.id, entity);
   }
 
   moveEntity(id: number, x: number, y: number, heading: number, serverTick?: number) {
     const e = this.remoteEntities.get(id);
     if (e) {
-      const next = new Map(this.remoteEntities);
-      next.set(id, { ...e, x, y, heading });
-      this.remoteEntities = next;
+      e.x = x;
+      e.y = y;
+      e.heading = heading;
       const buf = this.getOrCreateInterpolationBuffer(id);
       const tick = serverTick ?? Math.round(performance.now() / 16.67);
       buf.insert(tick, { x, y, heading }, performance.now());
@@ -347,9 +345,9 @@ class GameState {
     }
     const n = this.remoteNpcs.get(id);
     if (n) {
-      const next = new Map(this.remoteNpcs);
-      next.set(id, { ...n, x, y, heading });
-      this.remoteNpcs = next;
+      n.x = x;
+      n.y = y;
+      n.heading = heading;
       const buf = this.getOrCreateInterpolationBuffer(id);
       const tick = serverTick ?? Math.round(performance.now() / 16.67);
       buf.insert(tick, { x, y, heading }, performance.now());
@@ -357,23 +355,17 @@ class GameState {
   }
 
   addGroundItem(item: GroundItem) {
-    const next = new Map(this.groundItems);
-    next.set(`${item.x},${item.y}`, item);
-    this.groundItems = next;
+    this.groundItems.set(`${item.x},${item.y}`, item);
   }
 
   removeGroundItem(x: number, y: number) {
-    const next = new Map(this.groundItems);
-    next.delete(`${x},${y}`);
-    this.groundItems = next;
+    this.groundItems.delete(`${x},${y}`);
   }
 
   setEntityNameColor(id: number, colorCode: number) {
     const e = this.remoteEntities.get(id);
     if (e) {
-      const next = new Map(this.remoteEntities);
-      next.set(id, { ...e, nameColor: colorCode });
-      this.remoteEntities = next;
+      e.nameColor = colorCode;
     }
   }
 
@@ -394,16 +386,12 @@ class GameState {
     }
     const e = this.remoteEntities.get(id);
     if (e) {
-      const next = new Map(this.remoteEntities);
-      next.set(id, { ...e, [slot]: grhId });
-      this.remoteEntities = next;
+      (e as any)[slot] = grhId;
     }
   }
 
   removeEntity(id: number) {
-    const next = new Map(this.remoteEntities);
-    next.delete(id);
-    this.remoteEntities = next;
+    this.remoteEntities.delete(id);
     this.interpolationBuffers.delete(id);
   }
 
