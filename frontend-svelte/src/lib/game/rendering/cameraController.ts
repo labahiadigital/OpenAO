@@ -19,6 +19,14 @@ export type ViewBounds = {
  * interpolation system (0 when idle, sliding from −TILE_SIZE*delta → 0
  * during a walk step).  They replicate the original engine's
  * `offsetCounterX` / `offsetCounterY`.
+ *
+ * IMPORTANT — NO Math.round / Math.floor here.
+ * Rounding the camera position to integers when the scroll speed has a
+ * fractional component causes alternating 2px / 3px frame advances
+ * ("temporal aliasing") which the eye perceives as violent jitter.
+ * Allowing sub-pixel floats lets the GPU's texture sampler handle the
+ * interpolation smoothly.  Tile edges stay sharp thanks to
+ * `scaleMode: "nearest"` on every texture.
  */
 export function updateCamera(
   app: Application,
@@ -30,8 +38,8 @@ export function updateCamera(
 ): void {
   const cw = app.screen.width;
   const ch = app.screen.height;
-  worldContainer.x = Math.round(cw / 2 - (px - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPx);
-  worldContainer.y = Math.round(ch / 2 - (py - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPy);
+  worldContainer.x = cw / 2 - (px - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPx;
+  worldContainer.y = ch / 2 - (py - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPy;
 }
 
 export function computeViewBounds(

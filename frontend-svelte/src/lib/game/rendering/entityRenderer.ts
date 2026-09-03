@@ -270,9 +270,10 @@ export function renderRemoteEntities(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      // Pixel-snap to prevent sub-pixel shimmer during interpolation.
-      c.x = Math.round((visualX - 1) * TILE_SIZE);
-      c.y = Math.round((visualY - 1) * TILE_SIZE);
+      // Sub-pixel float position — no rounding.  The GPU's nearest-neighbour
+      // sampler keeps tile edges sharp while allowing smooth interpolation.
+      c.x = (visualX - 1) * TILE_SIZE;
+      c.y = (visualY - 1) * TILE_SIZE;
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = e.dead ? 0.45 : 1;
@@ -362,9 +363,9 @@ export function renderNpcs(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      // Pixel-snap to prevent sub-pixel shimmer during interpolation.
-      c.x = Math.round((visualX - 1) * TILE_SIZE);
-      c.y = Math.round((visualY - 1) * TILE_SIZE);
+      // Sub-pixel float position — no rounding (same reasoning as entities).
+      c.x = (visualX - 1) * TILE_SIZE;
+      c.y = (visualY - 1) * TILE_SIZE;
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = npc.dead ? 0.45 : 1;

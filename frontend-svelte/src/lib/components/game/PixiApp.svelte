@@ -120,12 +120,22 @@
       }
       const elapsed = tickerNow - anim.startedAt;
       const t = Math.min(1, elapsed / anim.durationMs); // 0→1
-      // Keep sub-pixel precision during interpolation; the camera
-      // function below will Math.round the *final* world position.
       camOffsetPx = -TILE_SIZE * anim.dx * (1 - t);
       camOffsetPy = -TILE_SIZE * anim.dy * (1 - t);
       isAnimating = t < 1;
-      if (t >= 1) {
+
+      // Do NOT null-out playerMoveAnim when t >= 1.
+      // If the player is walking continuously, the next doMove() call
+      // will overwrite this anim with the next step.  If we null it
+      // here, there is a 1-16ms window (setTimeout jitter) where no
+      // anim is active → offset snaps to 0 → visible micro-freeze.
+      // When t >= 1 the offset is already 0, so keeping the stale
+      // anim is harmless.  It will be replaced or naturally expire
+      // once the player stops and a grace period (WALK_STEP_MS * 1.5)
+      // passes — see below.
+      if (t >= 1 && (tickerNow - anim.startedAt) > anim.durationMs * 1.5) {
+        // Player has been idle for >50% longer than a step duration.
+        // Safe to clean up.
         gameState.playerMoveAnim = null;
       }
     }
@@ -144,11 +154,15 @@
 
     renderPlayer(PIXI, entityState, gameState.hud, px, py, createSprite);
 
-    // Single source of truth for the player container position.
-    // Pixel-snap to prevent sub-pixel shimmer (the camera is also snapped).
+    // Single source of truth for the player container world position.
+    // NO rounding — must use the exact same float precision as the camera
+    // so the player is always perfectly centred on screen with zero
+    // oscillation.  If we Math.round here but the camera uses floats
+    // (or vice-versa), the ±0.5px discrepancy flips each frame and
+    // the entire world jitters relative to the character.
     if (entityState.playerContainer) {
-      entityState.playerContainer.x = Math.round((px - 1) * TILE_SIZE + camOffsetPx);
-      entityState.playerContainer.y = Math.round((py - 1) * TILE_SIZE + camOffsetPy);
+      entityState.playerContainer.x = (px - 1) * TILE_SIZE + camOffsetPx;
+      entityState.playerContainer.y = (py - 1) * TILE_SIZE + camOffsetPy;
     }
 
     // Keep the player marked as "moving" while sliding so the walk cycle
@@ -197,22 +211,24 @@
       if (destroyed || !container) return;
       app = new PIXI.Application();
 
-      // Use integer scaling: match the device's physical pixels exactly so
-      // there is no sub-pixel resampling by the browser.  `autoDensity`
-      // keeps the CSS size equal to the layout size while the internal
-      // back-buffer is `resolution × CSS-size`.
-      const dpr = Math.max(1, Math.round(window.devicePixelRatio ?? 1));
-
+      // resolution: 1 keeps a 1:1 mapping between canvas CSS pixels and
+      // back-buffer pixels.  This avoids the double-rounding trap where
+      // roundPixels snaps sprite-local coords to integers but a non-1x
+      // resolution then multiplies them by a fractional DPR, re-introducing
+      // sub-pixel offsets and causing tile-edge shimmer.
+      //
+      // roundPixels: false — we deliberately allow sub-pixel positioning
+      // so the camera can scroll at non-integer speeds without the 2px/3px
+      // temporal aliasing that Math.round causes.  Tile edges stay crisp
+      // thanks to scaleMode "nearest" set below.
       await app.init({
         resizeTo: container,
         background: "#0a0f0a",
         antialias: false,
-        resolution: dpr,
-        autoDensity: true,
+        resolution: 1,
+        autoDensity: false,
         preference: "webgpu",
-        // Pixi 8: snap every sprite draw to the nearest pixel to
-        // eliminate sub-pixel shimmer on tile edges.
-        roundPixels: true,
+        roundPixels: false,
       });
       if (destroyed) { app.destroy(true); app = undefined; return; }
 
