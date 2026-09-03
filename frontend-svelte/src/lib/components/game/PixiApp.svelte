@@ -61,6 +61,9 @@
   let initError = $state<string | null>(null);
   let lastRenderedMapId = 0;
 
+  // Track the last anim we've re-based so we only do it once per slide.
+  let lastRebasedAnimStart = 0;
+
   const textureSourceCache: TextureSourceCache = new Map();
   const pendingLoads = new Set<number>();
 
@@ -88,18 +91,37 @@
       lastRenderedMapId = mapState.currentMapId;
     }
 
-    // Compute smooth camera / player offsets from the walk animation.
-    // While the player is sliding between tiles the logical pos has already
-    // jumped to the destination; we offset backwards by the remaining slide
-    // distance so the visual position glides smoothly (original engine's
-    // offsetCounterX/Y + moveOffsetX/Y pattern).
+    // ── Smooth camera / player slide ──────────────────────────────
+    // While the player slides between tiles the logical pos has already
+    // snapped to the destination.  We compute a *pixel* offset that
+    // decreases linearly from −TILE_SIZE*delta → 0 over `durationMs`.
+    //
+    // CRITICAL: we use the Pixi ticker's own timestamp (monotonic,
+    // aligned to rAF) rather than a raw `performance.now()` call so
+    // the interpolation factor is perfectly in-phase with the frame
+    // that will be presented.  This avoids micro-jitter caused by
+    // `performance.now()` being sampled at an arbitrary point inside
+    // the frame budget.
+    const tickerNow = app.ticker.lastTime;   // ms since Pixi init, rAF-aligned
     let camOffsetPx = 0;
     let camOffsetPy = 0;
     let isAnimating = false;
     const anim = gameState.playerMoveAnim;
     if (anim) {
-      const elapsed = performance.now() - anim.startedAt;
+      // Re-base the animation start from performance.now() space into
+      // Pixi-ticker space the first time we see a new anim.  This is a
+      // one-time conversion: GameView records `performance.now()` but
+      // the render loop uses `app.ticker.lastTime`.
+      if (anim.startedAt !== lastRebasedAnimStart) {
+        const perfNow = performance.now();
+        const drift = perfNow - anim.startedAt;      // how long ago it started
+        anim.startedAt = tickerNow - drift;           // convert to ticker space
+        lastRebasedAnimStart = anim.startedAt;
+      }
+      const elapsed = tickerNow - anim.startedAt;
       const t = Math.min(1, elapsed / anim.durationMs); // 0→1
+      // Keep sub-pixel precision during interpolation; the camera
+      // function below will Math.round the *final* world position.
       camOffsetPx = -TILE_SIZE * anim.dx * (1 - t);
       camOffsetPy = -TILE_SIZE * anim.dy * (1 - t);
       isAnimating = t < 1;
@@ -122,9 +144,11 @@
 
     renderPlayer(PIXI, entityState, gameState.hud, px, py, createSprite);
 
+    // Single source of truth for the player container position.
+    // Pixel-snap to prevent sub-pixel shimmer (the camera is also snapped).
     if (entityState.playerContainer) {
-      entityState.playerContainer.x = (px - 1) * TILE_SIZE + camOffsetPx;
-      entityState.playerContainer.y = (py - 1) * TILE_SIZE + camOffsetPy;
+      entityState.playerContainer.x = Math.round((px - 1) * TILE_SIZE + camOffsetPx);
+      entityState.playerContainer.y = Math.round((py - 1) * TILE_SIZE + camOffsetPy);
     }
 
     // Keep the player marked as "moving" while sliding so the walk cycle
@@ -172,18 +196,34 @@
       PIXI = await import("pixi.js");
       if (destroyed || !container) return;
       app = new PIXI.Application();
+
+      // Use integer scaling: match the device's physical pixels exactly so
+      // there is no sub-pixel resampling by the browser.  `autoDensity`
+      // keeps the CSS size equal to the layout size while the internal
+      // back-buffer is `resolution × CSS-size`.
+      const dpr = Math.max(1, Math.round(window.devicePixelRatio ?? 1));
+
       await app.init({
         resizeTo: container,
         background: "#0a0f0a",
         antialias: false,
-        resolution: 1,
-        autoDensity: false,
+        resolution: dpr,
+        autoDensity: true,
         preference: "webgpu",
+        // Pixi 8: snap every sprite draw to the nearest pixel to
+        // eliminate sub-pixel shimmer on tile edges.
+        roundPixels: true,
       });
       if (destroyed) { app.destroy(true); app = undefined; return; }
 
       const canvas = app.canvas as HTMLCanvasElement;
+      // Pixel-art rendering: prevent the browser from applying bilinear
+      // filtering when the CSS size differs from the back-buffer size.
+      canvas.style.imageRendering = "pixelated";
       container.appendChild(canvas);
+
+      // Default texture sampling = nearest-neighbour for crisp pixel art.
+      PIXI.TextureStyle.defaultOptions.scaleMode = "nearest";
 
       worldContainer = new PIXI.Container();
       app.stage.addChild(worldContainer);

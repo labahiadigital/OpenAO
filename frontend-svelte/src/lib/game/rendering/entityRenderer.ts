@@ -270,8 +270,9 @@ export function renderRemoteEntities(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      c.x = (visualX - 1) * TILE_SIZE;
-      c.y = (visualY - 1) * TILE_SIZE;
+      // Pixel-snap to prevent sub-pixel shimmer during interpolation.
+      c.x = Math.round((visualX - 1) * TILE_SIZE);
+      c.y = Math.round((visualY - 1) * TILE_SIZE);
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = e.dead ? 0.45 : 1;
@@ -361,8 +362,9 @@ export function renderNpcs(
           visualY = prev.y + (next.y - prev.y) * sample.alpha;
         }
       }
-      c.x = (visualX - 1) * TILE_SIZE;
-      c.y = (visualY - 1) * TILE_SIZE;
+      // Pixel-snap to prevent sub-pixel shimmer during interpolation.
+      c.x = Math.round((visualX - 1) * TILE_SIZE);
+      c.y = Math.round((visualY - 1) * TILE_SIZE);
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = npc.dead ? 0.45 : 1;
@@ -670,8 +672,11 @@ export function renderPlayer(
     state.playerRenderState = buildRenderState(bodyGrhId, headGrhId, heading, hud.dead, nc);
   }
 
-  pc.x = (px - 1) * TILE_SIZE;
-  pc.y = (py - 1) * TILE_SIZE;
+  // NOTE: pc.x / pc.y are NOT set here.  The caller (PixiApp.svelte)
+  // is the single owner of the player container's world position
+  // because it needs to apply the sub-tile interpolation offset.
+  // Setting it here would cause a 1-frame snap before the offset is
+  // applied, producing visible jitter.
   pc.zIndex = py * 10 + 5;
   pc.alpha = hud.dead ? 0.45 : 1;
 
