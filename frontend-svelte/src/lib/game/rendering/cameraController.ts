@@ -12,16 +12,26 @@ export type ViewBounds = {
   viewH: number;
 };
 
+/**
+ * Position the world container so the player tile is centred on screen.
+ *
+ * `offsetPx` / `offsetPy` are **pixel** offsets produced by the movement
+ * interpolation system (0 when idle, sliding from −TILE_SIZE*delta → 0
+ * during a walk step).  They replicate the original engine's
+ * `offsetCounterX` / `offsetCounterY`.
+ */
 export function updateCamera(
   app: Application,
   worldContainer: PixiContainer,
   px: number,
   py: number,
+  offsetPx = 0,
+  offsetPy = 0,
 ): void {
   const cw = app.screen.width;
   const ch = app.screen.height;
-  worldContainer.x = cw / 2 - (px - 1) * TILE_SIZE - TILE_SIZE / 2;
-  worldContainer.y = ch / 2 - (py - 1) * TILE_SIZE - TILE_SIZE / 2;
+  worldContainer.x = Math.round(cw / 2 - (px - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPx);
+  worldContainer.y = Math.round(ch / 2 - (py - 1) * TILE_SIZE - TILE_SIZE / 2 + offsetPy);
 }
 
 export function computeViewBounds(

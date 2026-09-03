@@ -88,7 +88,27 @@
       lastRenderedMapId = mapState.currentMapId;
     }
 
-    updateCamera(app, worldContainer, px, py);
+    // Compute smooth camera / player offsets from the walk animation.
+    // While the player is sliding between tiles the logical pos has already
+    // jumped to the destination; we offset backwards by the remaining slide
+    // distance so the visual position glides smoothly (original engine's
+    // offsetCounterX/Y + moveOffsetX/Y pattern).
+    let camOffsetPx = 0;
+    let camOffsetPy = 0;
+    const anim = gameState.playerMoveAnim;
+    if (anim) {
+      const elapsed = performance.now() - anim.startedAt;
+      const t = Math.min(1, elapsed / anim.durationMs); // 0→1
+      // Camera offset: slides from -TILE_SIZE*delta*(1-0) to 0
+      // Using the *inverse* progress so camera catches up to the new pos.
+      camOffsetPx = -TILE_SIZE * anim.dx * (1 - t);
+      camOffsetPy = -TILE_SIZE * anim.dy * (1 - t);
+      if (t >= 1) {
+        gameState.playerMoveAnim = null;
+      }
+    }
+
+    updateCamera(app, worldContainer, px, py, camOffsetPx, camOffsetPy);
     const bounds = computeViewBounds(app, px, py, mp.w, mp.h);
 
     for (let y = bounds.minY; y <= bounds.maxY; y++) {

@@ -18,7 +18,7 @@
   import OverviewModal from "./OverviewModal.svelte";
   import DebugOverlay from "./DebugOverlay.svelte";
   import { gameSession } from "$lib/game/session/gameSession.svelte";
-  import { gameState } from "$lib/game/state/gameState.svelte";
+  import { gameState, WALK_STEP_MS } from "$lib/game/state/gameState.svelte";
   import { assetStore } from "$lib/game/state/assetStore.svelte";
   import {
     registerAllPacketHandlers,
@@ -38,7 +38,6 @@
   const WS_URL = import.meta.env.VITE_GAME_WS_URL || "ws://localhost:7666";
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-  const MOVE_INTERVAL_MS = 1000 / 60;
   let lastMoveTime = 0;
   let handlersRegistered = false;
   let pingInterval: ReturnType<typeof setInterval> | undefined;
@@ -77,7 +76,7 @@
 
   function tryMove(heading: number) {
     const now = performance.now();
-    if (now - lastMoveTime < MOVE_INTERVAL_MS) return;
+    if (now - lastMoveTime < WALK_STEP_MS) return;
     lastMoveTime = now;
 
     const { x, y } = gameState.hud.pos;
@@ -109,6 +108,17 @@
     gameState.predictionBuffer.record(tick, { heading }, { x: nx, y: ny });
     gameState.inputSender.record(tick, { heading });
     gameState.mergeHud({ pos: { x: nx, y: ny }, heading });
+
+    // Start a visual slide animation (like the original's startCharacterMovement).
+    // The logical position has already jumped to the target tile; the renderer
+    // will offset the sprite/camera backwards and linearly interpolate to 0.
+    gameState.playerMoveAnim = {
+      startedAt: now,
+      durationMs: WALK_STEP_MS,
+      dx,
+      dy,
+    };
+
     sendPosition(heading, tick);
   }
 

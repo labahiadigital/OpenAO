@@ -53,6 +53,31 @@ export interface HudState {
   clanMembers: ClanHudMember[];
 }
 
+/**
+ * Time (ms) a character takes to slide from one tile to the next.
+ * Matches the original game's `walkStepMs` (200ms → 5 tiles/s).
+ */
+export const WALK_STEP_MS = 200;
+
+/**
+ * Tracks the visual interpolation of the local player between tiles.
+ * Mirrors the original engine's startCharacterMovement / moveOffsetX/Y system.
+ *
+ * When the player begins a step the logical position (hud.pos) jumps to the
+ * target tile immediately, but `moveOffsetX/Y` start at -TILE_SIZE*delta and
+ * linearly interpolate to 0 over `durationMs`.  The renderer adds these offsets
+ * to produce a smooth slide.
+ */
+export interface PlayerMoveAnim {
+  /** performance.now() when the slide started */
+  startedAt: number;
+  /** how long the slide takes (ms) — matches walkStepMs */
+  durationMs: number;
+  /** tile delta (-1, 0, or 1) on each axis */
+  dx: number;
+  dy: number;
+}
+
 export interface ChatMessage {
   from: string;
   text: string;
@@ -169,6 +194,8 @@ class GameState {
   bailOffer: BailOffer | null = $state(null);
   castBar: { entityId: number; startMs: number; durationMs: number } | null = $state(null);
   pendingSpellSlot: number | null = $state(null);
+  /** Active slide animation for the local player (null when idle). */
+  playerMoveAnim: PlayerMoveAnim | null = $state(null);
   showCharacterStats: boolean = $state(false);
   showNpcInspector: number | null = $state(null);
   showAdminIntervals: boolean = $state(false);
@@ -233,6 +260,7 @@ class GameState {
     this.predictionBuffer.reset(0);
     this.inputSender.reset();
     this._moveTick = 0;
+    this.playerMoveAnim = null;
   }
 
   addChat(from: string, text: string, color = "#d6d3d1") {
