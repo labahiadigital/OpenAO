@@ -71,6 +71,37 @@ export interface GraphicInfo {
   offsetY: number;
 }
 
+export interface AnimationInfo {
+  frames: GraphicInfo[];
+  speed: number;
+  frameCount: number;
+}
+
+export function getAnimationInfo(grhId: number): AnimationInfo | null {
+  if (!graphicsDB || grhId === 0) return null;
+  const entry = graphicsDB[String(grhId)];
+  if (!entry) return null;
+
+  if (!isSimple(entry) && entry.r && entry.r.length > 0) {
+    const frames: GraphicInfo[] = [];
+    for (const fid of entry.r) {
+      const fe = graphicsDB[String(fid)];
+      if (fe && isSimple(fe)) {
+        frames.push({ fileNum: fe[0], sX: fe[1], sY: fe[2], w: fe[3], h: fe[4], offsetX: 0, offsetY: 0 });
+      }
+    }
+    if (frames.length > 0) {
+      return { frames, speed: entry.s ?? 100, frameCount: frames.length };
+    }
+  }
+
+  const single = getGraphicInfo(grhId);
+  if (single) {
+    return { frames: [single], speed: 0, frameCount: 1 };
+  }
+  return null;
+}
+
 export function getGraphicInfo(grhId: number): GraphicInfo | null {
   if (!graphicsDB || grhId === 0) return null;
   const strId = String(grhId);

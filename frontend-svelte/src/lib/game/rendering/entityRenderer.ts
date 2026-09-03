@@ -2,9 +2,23 @@ import type {
   Container as PixiContainer,
   Sprite as PixiSprite,
 } from "pixi.js";
-import { getGraphicInfo } from "$lib/game/engine/assetLoader";
+import { getGraphicInfo, getAnimationInfo, type GraphicInfo } from "$lib/game/engine/assetLoader";
 import { assetStore } from "$lib/game/state/assetStore.svelte";
 import { TILE_SIZE, type SpriteFactory } from "./tileRenderer";
+import type { TextureSource as PixiTextureSource } from "pixi.js";
+
+export type TextureSourceCache = Map<number, PixiTextureSource>;
+
+/**
+ * Animation constants ported from the original Engine.ts:
+ * - BODY_ANIMATION_CYCLE_MS: One full walk cycle takes 400ms
+ * - WALK_DURATION_MS: How long a single tile-step takes (~300ms)
+ * Entities are considered "moving" for WALK_DURATION_MS after their
+ * last MOVE_ENTITY packet.  While moving, body/head frames cycle
+ * over BODY_ANIMATION_CYCLE_MS.
+ */
+const BODY_ANIMATION_CYCLE_MS = 400;
+const WALK_DURATION_MS = 300;
 
 export type EntityRenderState = {
   bodyGrh: number;
@@ -12,6 +26,19 @@ export type EntityRenderState = {
   heading: number;
   dead: boolean;
   nameColor: number;
+  bodyAnimFrames?: GraphicInfo[];
+  bodyFrameCount: number;
+  headAnimFrames?: GraphicInfo[];
+  headFrameCount: number;
+  /** Timestamp when the current walk animation started (performance.now) */
+  animStartTime: number;
+  /** Last rendered body frame index (0-based) */
+  lastFrameIdx: number;
+  /** Whether entity was moving on the last render tick */
+  wasMoving: boolean;
+  /** Last known visual position — used to detect movement for animation */
+  lastVisualX: number;
+  lastVisualY: number;
 };
 
 const NAME_COLORS: Record<number, number> = {
@@ -126,6 +153,10 @@ export type EntityContainerState = {
   npcRenderStates: Map<number, EntityRenderState>;
   playerContainer: PixiContainer | undefined;
   playerRenderState: EntityRenderState | null;
+  /** Tracks the last time each entity/npc moved (performance.now ms) */
+  entityMoveTimes: Map<number, number>;
+  /** Track when the local player last moved */
+  playerLastMoveTime: number;
 };
 
 export function createEntityContainerState(): EntityContainerState {
@@ -136,6 +167,8 @@ export function createEntityContainerState(): EntityContainerState {
     npcRenderStates: new Map(),
     playerContainer: undefined,
     playerRenderState: null,
+    entityMoveTimes: new Map(),
+    playerLastMoveTime: 0,
   };
 }
 
@@ -148,6 +181,28 @@ export function clearEntityState(state: EntityContainerState) {
     c.destroy({ children: true });
   state.npcContainers.clear();
   state.npcRenderStates.clear();
+  state.entityMoveTimes.clear();
+}
+
+function buildRenderState(bodyGrhId: number, headGrhId: number, heading: number, dead: boolean, nc: number): EntityRenderState {
+  const bodyAnim = bodyGrhId > 0 ? getAnimationInfo(bodyGrhId) : null;
+  const headAnim = headGrhId > 0 ? getAnimationInfo(headGrhId) : null;
+  return {
+    bodyGrh: bodyGrhId,
+    headGrh: headGrhId,
+    heading,
+    dead,
+    nameColor: nc,
+    bodyAnimFrames: bodyAnim?.frames,
+    bodyFrameCount: bodyAnim?.frameCount ?? 1,
+    headAnimFrames: headAnim?.frames,
+    headFrameCount: headAnim?.frameCount ?? 1,
+    animStartTime: 0,
+    lastFrameIdx: 0,
+    wasMoving: false,
+    lastVisualX: -1,
+    lastVisualY: -1,
+  };
 }
 
 export function renderRemoteEntities(
@@ -198,13 +253,7 @@ export function renderRemoteEntities(
       entityLayer.addChild(c);
       state.entityContainers.set(id, c);
       if (built.hasRealSprite || bodyGrhId === 0) {
-        state.entityRenderStates.set(id, {
-          bodyGrh: bodyGrhId,
-          headGrh: headGrhId,
-          heading: e.heading,
-          dead: e.dead,
-          nameColor: nc,
-        });
+        state.entityRenderStates.set(id, buildRenderState(bodyGrhId, headGrhId, e.heading, e.dead, nc));
       }
     }
 
@@ -226,6 +275,15 @@ export function renderRemoteEntities(
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = e.dead ? 0.45 : 1;
+
+      const rs = state.entityRenderStates.get(id);
+      if (rs) {
+        if (rs.lastVisualX >= 0 && (Math.abs(visualX - rs.lastVisualX) > 0.01 || Math.abs(visualY - rs.lastVisualY) > 0.01)) {
+          state.entityMoveTimes.set(id, performance.now());
+        }
+        rs.lastVisualX = visualX;
+        rs.lastVisualY = visualY;
+      }
     }
   }
   for (const [id, c] of state.entityContainers) {
@@ -233,6 +291,7 @@ export function renderRemoteEntities(
       c.destroy({ children: true });
       state.entityContainers.delete(id);
       state.entityRenderStates.delete(id);
+      state.entityMoveTimes.delete(id);
     }
   }
 }
@@ -285,13 +344,7 @@ export function renderNpcs(
       entityLayer.addChild(c);
       state.npcContainers.set(id, c);
       if (built.hasRealSprite || bodyGrhId === 0) {
-        state.npcRenderStates.set(id, {
-          bodyGrh: bodyGrhId,
-          headGrh: headGrhId,
-          heading: npc.heading,
-          dead: npc.dead,
-          nameColor: 0,
-        });
+        state.npcRenderStates.set(id, buildRenderState(bodyGrhId, headGrhId, npc.heading, npc.dead, 0));
       }
     }
 
@@ -313,6 +366,15 @@ export function renderNpcs(
       c.zIndex = Math.round(visualY) * 10 + 5;
       c.visible = true;
       c.alpha = npc.dead ? 0.45 : 1;
+
+      const rs = state.npcRenderStates.get(id);
+      if (rs) {
+        if (rs.lastVisualX >= 0 && (Math.abs(visualX - rs.lastVisualX) > 0.01 || Math.abs(visualY - rs.lastVisualY) > 0.01)) {
+          state.entityMoveTimes.set(id, performance.now());
+        }
+        rs.lastVisualX = visualX;
+        rs.lastVisualY = visualY;
+      }
     }
   }
   for (const [id, c] of state.npcContainers) {
@@ -320,8 +382,160 @@ export function renderNpcs(
       c.destroy({ children: true });
       state.npcContainers.delete(id);
       state.npcRenderStates.delete(id);
+      state.entityMoveTimes.delete(id);
     }
   }
+}
+
+let _getTexSrcFn: ((PIXI: any, cache: any, pending: any, fileNum: number) => any) | null = null;
+export function setGetTextureSourceFn(fn: (PIXI: any, cache: any, pending: any, fileNum: number) => any) {
+  _getTexSrcFn = fn;
+}
+
+/**
+ * Called from PixiApp ticker every frame.
+ * Drives the walk-cycle animation for all entities, NPCs, and the player.
+ *
+ * Animation logic ported from the original Engine.ts:
+ * - An entity is "moving" for WALK_DURATION_MS after its last position change.
+ * - While moving, the body frame cycles over BODY_ANIMATION_CYCLE_MS.
+ * - When idle, frame resets to 0 (the standing/idle pose).
+ */
+export function animateEntitySprites(
+  PIXI: typeof import("pixi.js"),
+  state: EntityContainerState,
+  cache: TextureSourceCache,
+  pendingLoads: Set<number>,
+  now: number,
+) {
+  const allSets: [Map<number, PixiContainer>, Map<number, EntityRenderState>][] = [
+    [state.entityContainers, state.entityRenderStates],
+    [state.npcContainers, state.npcRenderStates],
+  ];
+
+  if (state.playerContainer && state.playerRenderState) {
+    const isMoving = (now - state.playerLastMoveTime) < WALK_DURATION_MS;
+    updateContainerAnim(PIXI, state.playerContainer, state.playerRenderState, cache, pendingLoads, now, isMoving);
+  }
+
+  for (const [containers, renderStates] of allSets) {
+    for (const [id, c] of containers) {
+      const rs = renderStates.get(id);
+      if (!rs) continue;
+      const lastMove = state.entityMoveTimes.get(id) ?? 0;
+      const isMoving = (now - lastMove) < WALK_DURATION_MS;
+      updateContainerAnim(PIXI, c, rs, cache, pendingLoads, now, isMoving);
+    }
+  }
+}
+
+function updateContainerAnim(
+  PIXI: typeof import("pixi.js"),
+  container: PixiContainer,
+  rs: EntityRenderState,
+  cache: TextureSourceCache,
+  _pendingLoads: Set<number>,
+  now: number,
+  isMoving: boolean,
+) {
+  if (!rs.bodyAnimFrames || rs.bodyFrameCount <= 1) return;
+
+  if (isMoving) {
+    if (!rs.wasMoving) {
+      rs.animStartTime = now;
+      rs.wasMoving = true;
+    }
+    const elapsed = now - rs.animStartTime;
+    const msPerFrame = Math.max(Math.round(BODY_ANIMATION_CYCLE_MS / rs.bodyFrameCount), 1);
+    const frameIdx = Math.floor(elapsed / msPerFrame) % rs.bodyFrameCount;
+
+    if (frameIdx !== rs.lastFrameIdx) {
+      rs.lastFrameIdx = frameIdx;
+      applyBodyFrame(PIXI, container, rs.bodyAnimFrames, frameIdx, cache);
+      if (rs.headAnimFrames && rs.headFrameCount > 1) {
+        const headFrameIdx = Math.floor(elapsed / msPerFrame) % rs.headFrameCount;
+        applyHeadFrame(PIXI, container, rs.headAnimFrames, headFrameIdx, cache);
+      }
+    }
+  } else {
+    if (rs.wasMoving || rs.lastFrameIdx !== 0) {
+      rs.lastFrameIdx = 0;
+      rs.wasMoving = false;
+      applyBodyFrame(PIXI, container, rs.bodyAnimFrames, 0, cache);
+      if (rs.headAnimFrames && rs.headFrameCount > 1) {
+        applyHeadFrame(PIXI, container, rs.headAnimFrames, 0, cache);
+      }
+    }
+  }
+}
+
+function applyBodyFrame(
+  PIXI: typeof import("pixi.js"),
+  container: PixiContainer,
+  frames: GraphicInfo[],
+  frameIdx: number,
+  cache: TextureSourceCache,
+) {
+  const frameInfo = frames[frameIdx];
+  if (!frameInfo) return;
+  for (const child of container.children) {
+    if ((child as any)._isBody) {
+      const src = cache.get(frameInfo.fileNum);
+      if (!src) continue;
+      try {
+        const fw = Math.min(frameInfo.w, src.width - frameInfo.sX);
+        const fh = Math.min(frameInfo.h, src.height - frameInfo.sY);
+        if (fw > 0 && fh > 0) {
+          (child as PixiSprite).texture = new PIXI.Texture({
+            source: src,
+            frame: new PIXI.Rectangle(frameInfo.sX, frameInfo.sY, fw, fh),
+          });
+        }
+      } catch { /* keep current frame */ }
+    }
+  }
+}
+
+function applyHeadFrame(
+  PIXI: typeof import("pixi.js"),
+  container: PixiContainer,
+  frames: GraphicInfo[],
+  frameIdx: number,
+  cache: TextureSourceCache,
+) {
+  const headFrame = frames[frameIdx];
+  if (!headFrame) return;
+  for (const child of container.children) {
+    if ((child as any)._isHead) {
+      const src = cache.get(headFrame.fileNum);
+      if (!src) continue;
+      try {
+        const fw = Math.min(headFrame.w, src.width - headFrame.sX);
+        const fh = Math.min(headFrame.h, src.height - headFrame.sY);
+        if (fw > 0 && fh > 0) {
+          (child as PixiSprite).texture = new PIXI.Texture({
+            source: src,
+            frame: new PIXI.Rectangle(headFrame.sX, headFrame.sY, fw, fh),
+          });
+        }
+      } catch { /* keep current frame */ }
+    }
+  }
+}
+
+/**
+ * Called externally when an entity position changes (from moveEntity handler).
+ * Records the timestamp so `animateEntitySprites` knows the entity is walking.
+ */
+export function notifyEntityMoved(state: EntityContainerState, entityId: number) {
+  state.entityMoveTimes.set(entityId, performance.now());
+}
+
+/**
+ * Called externally when the local player moves.
+ */
+export function notifyPlayerMoved(state: EntityContainerState) {
+  state.playerLastMoveTime = performance.now();
 }
 
 export function renderPlayer(
@@ -376,6 +590,7 @@ export function renderPlayer(
         bodySprite.x = pos.x;
         bodySprite.y = pos.y;
         bodySprite.zIndex = 0.2;
+        (bodySprite as any)._isBody = true;
         pc.addChild(bodySprite);
 
         if (headGrhId > 0) {
@@ -397,6 +612,7 @@ export function renderPlayer(
               headSprite.x = Math.round(hx);
               headSprite.y = Math.round(hy);
               headSprite.zIndex = 0.1;
+              (headSprite as any)._isHead = true;
               pc.addChild(headSprite);
             }
           }
@@ -451,17 +667,20 @@ export function renderPlayer(
       pc.addChild(t);
     }
 
-    state.playerRenderState = {
-      bodyGrh: bodyGrhId,
-      headGrh: headGrhId,
-      heading,
-      dead: hud.dead,
-      nameColor: nc,
-    };
+    state.playerRenderState = buildRenderState(bodyGrhId, headGrhId, heading, hud.dead, nc);
   }
 
   pc.x = (px - 1) * TILE_SIZE;
   pc.y = (py - 1) * TILE_SIZE;
   pc.zIndex = py * 10 + 5;
   pc.alpha = hud.dead ? 0.45 : 1;
+
+  const prs = state.playerRenderState;
+  if (prs) {
+    if (prs.lastVisualX >= 0 && (Math.abs(px - prs.lastVisualX) > 0.01 || Math.abs(py - prs.lastVisualY) > 0.01)) {
+      state.playerLastMoveTime = performance.now();
+    }
+    prs.lastVisualX = px;
+    prs.lastVisualY = py;
+  }
 }

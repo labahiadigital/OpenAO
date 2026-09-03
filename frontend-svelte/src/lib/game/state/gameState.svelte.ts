@@ -168,6 +168,7 @@ class GameState {
   retosState: RetosState | null = $state(null);
   bailOffer: BailOffer | null = $state(null);
   castBar: { entityId: number; startMs: number; durationMs: number } | null = $state(null);
+  pendingSpellSlot: number | null = $state(null);
   showCharacterStats: boolean = $state(false);
   showNpcInspector: number | null = $state(null);
   showAdminIntervals: boolean = $state(false);
@@ -204,7 +205,7 @@ class GameState {
   }
 
   private static readonly movementSimulate: SimulateFn<{ heading: number }, { x: number; y: number }> = (state, _tick, input) => {
-    const dx = input.heading === 4 ? 1 : input.heading === 3 ? -1 : 0;
+    const dx = input.heading === 3 ? 1 : input.heading === 4 ? -1 : 0;
     const dy = input.heading === 2 ? 1 : input.heading === 1 ? -1 : 0;
     return { x: state.x + dx, y: state.y + dy };
   };

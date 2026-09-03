@@ -21,6 +21,7 @@
     updateTreeTransparency,
     cullOffscreenTiles,
     createSpriteFromInfo,
+    getTextureSource,
   } from "$lib/game/rendering/tileRenderer";
   import {
     type EntityContainerState,
@@ -29,6 +30,8 @@
     renderRemoteEntities,
     renderNpcs,
     renderPlayer,
+    animateEntitySprites,
+    setGetTextureSourceFn,
   } from "$lib/game/rendering/entityRenderer";
   import {
     type GroundItemContainerState,
@@ -114,6 +117,8 @@
     );
     renderGroundItems(PIXI, entityLayer, groundItemState, gameState.groundItems, createSprite);
 
+    animateEntitySprites(PIXI, entityState, textureSourceCache, pendingLoads, performance.now());
+
     cullOffscreenTiles(tileState, px, py, bounds.viewW, bounds.viewH);
   }
 
@@ -121,6 +126,12 @@
     if (!app) return;
     handleCanvasClick(app, gameState.hud.pos.x, gameState.hud.pos.y, e);
   }
+
+  $effect(() => {
+    if (!app) return;
+    const canvas = app.canvas as HTMLCanvasElement;
+    canvas.style.cursor = gameState.pendingSpellSlot !== null ? "crosshair" : "default";
+  });
 
   onMount(() => {
     let destroyed = false;
@@ -155,6 +166,10 @@
       entityLayer.addChild(entityState.playerContainer);
 
       canvas.addEventListener("click", onCanvasClick);
+
+      setGetTextureSourceFn((pixiRef: any, cache: any, pending: any, fileNum: number) => {
+        return getTextureSource(pixiRef, cache, pending, fileNum);
+      });
 
       app.ticker.add(() => {
         try {

@@ -81,7 +81,7 @@
     lastMoveTime = now;
 
     const { x, y } = gameState.hud.pos;
-    const dx = heading === 4 ? 1 : heading === 3 ? -1 : 0;
+    const dx = heading === 3 ? 1 : heading === 4 ? -1 : 0;
     const dy = heading === 2 ? 1 : heading === 1 ? -1 : 0;
     const nx = x + dx;
     const ny = y + dy;
@@ -119,14 +119,15 @@
     switch (e.key) {
       case "ArrowUp": case "w": e.preventDefault(); tryMove(1); break;
       case "ArrowDown": case "s": e.preventDefault(); tryMove(2); break;
-      case "ArrowLeft": case "a": e.preventDefault(); tryMove(3); break;
-      case "ArrowRight": case "d": e.preventDefault(); tryMove(4); break;
+      case "ArrowLeft": case "a": e.preventDefault(); tryMove(4); break;
+      case "ArrowRight": case "d": e.preventDefault(); tryMove(3); break;
       case " ": e.preventDefault(); sendAttackMelee(); break;
       case "g": sendPickupItem(); break;
       case "u": sendToggleSafe(); break;
       case "c": gameState.showCharacterStats = !gameState.showCharacterStats; break;
       case "o": gameState.showOverview = !gameState.showOverview; break;
       case "F3": e.preventDefault(); gameState.showDebugOverlay = !gameState.showDebugOverlay; break;
+      case "Escape": gameState.pendingSpellSlot = null; break;
       default: break;
     }
   }

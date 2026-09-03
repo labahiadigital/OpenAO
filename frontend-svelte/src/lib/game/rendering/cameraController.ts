@@ -1,6 +1,7 @@
 import type { Container as PixiContainer, Application } from "pixi.js";
 import { TILE_SIZE } from "$lib/game/lib/viewport";
-import { sendClick } from "$lib/game/session/outgoingRequests";
+import { sendClick, sendAttackSpell } from "$lib/game/session/outgoingRequests";
+import { gameState } from "$lib/game/state/gameState.svelte";
 
 export type ViewBounds = {
   minX: number;
@@ -65,6 +66,11 @@ export function handleCanvasClick(
   const tileX = playerX + Math.round((mx - cw / 2) / TILE_SIZE);
   const tileY = playerY + Math.round((my - ch / 2) / TILE_SIZE);
   if (tileX >= 1 && tileX <= 100 && tileY >= 1 && tileY <= 100) {
-    sendClick(tileX, tileY);
+    if (gameState.pendingSpellSlot !== null) {
+      sendAttackSpell(gameState.pendingSpellSlot);
+      gameState.pendingSpellSlot = null;
+    } else {
+      sendClick(tileX, tileY);
+    }
   }
 }

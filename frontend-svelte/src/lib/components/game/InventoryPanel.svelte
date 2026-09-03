@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { InventoryItem, SpellEntry } from "$lib/game/lib/aowProtocol";
-  import { sendEquipItem, sendUseItemClick, sendDropItem, sendAttackSpell, sendReorderInventory } from "$lib/game/session/outgoingRequests";
+  import { sendEquipItem, sendUseItemClick, sendDropItem, sendReorderInventory } from "$lib/game/session/outgoingRequests";
   import ItemGraphic from "./ItemGraphic.svelte";
   import { assetStore } from "$lib/game/state/assetStore.svelte";
+  import { gameState } from "$lib/game/state/gameState.svelte";
 
   let { inventory, spells }: { inventory: InventoryItem[]; spells: SpellEntry[] } = $props();
 
@@ -65,7 +66,11 @@
 
   function handleCastSpell() {
     if (selectedSpellSlot !== null) {
-      sendAttackSpell(selectedSpellSlot);
+      if (gameState.pendingSpellSlot === selectedSpellSlot) {
+        gameState.pendingSpellSlot = null;
+      } else {
+        gameState.pendingSpellSlot = selectedSpellSlot;
+      }
     }
   }
 </script>

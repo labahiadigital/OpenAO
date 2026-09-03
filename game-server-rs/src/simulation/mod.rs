@@ -728,13 +728,13 @@ fn process_npc_ai(world: &GameWorld, tick: u64) {
                     try_npc_move_towards(world, &scene, npc_id, target_pid, &player_positions, tick);
                 }
             } else if !npc_inmovilizado && rng.random_range(0..10) < 3 {
-                let dir = rng.random_range(0..4);
-                let (dx, dy) = match dir {
-                    0 => (0, -1),
-                    1 => (0, 1),
-                    2 => (-1, 0),
-                    _ => (1, 0),
+                let heading: u8 = match rng.random_range(0..4) {
+                    0 => 1, // up
+                    1 => 2, // down
+                    2 => 3, // right
+                    _ => 4, // left
                 };
+                let (dx, dy) = crate::gateway::packets::heading_to_delta(heading);
                 let map = npc.pos.map;
                 let (map_w, map_h) = world.gd().get_map_bounds(map);
                 let new_x = (npc.pos.x + dx).clamp(1, map_w);
@@ -747,8 +747,6 @@ fn process_npc_ai(world: &GameWorld, tick: u64) {
                     drop(npc);
                     let new_pos = crate::world::Position { map, x: new_x, y: new_y };
                     scene.aoi_move(npc_id, &new_pos);
-
-                    let heading = match dir { 0 => 1, 1 => 2, 2 => 3, _ => 4 };
                     let server_tick = tick as u16;
                     let move_pkt = crate::replication::build_move_entity_packet_with_tick(
                         npc_id, new_x, new_y, heading, server_tick,
@@ -943,36 +941,48 @@ fn try_npc_move_towards(
 ) {
     let Some(mut npc) = scene.npcs.get_mut(&npc_id) else { return; };
 
-    let dx = player_positions.iter()
-        .find(|(id, _, _, _, _)| *id == target_pid)
-        .map(|(_, px, _, _, _)| (*px - npc.pos.x).signum())
-        .unwrap_or(0);
-    let dy = player_positions.iter()
-        .find(|(id, _, _, _, _)| *id == target_pid)
-        .map(|(_, _, py, _, _)| (*py - npc.pos.y).signum())
-        .unwrap_or(0);
+    let target = player_positions.iter()
+        .find(|(id, _, _, _, _)| *id == target_pid);
+    let Some((_, px, py, _, _)) = target else { return; };
+
+    let raw_dx = (*px - npc.pos.x).signum();
+    let raw_dy = (*py - npc.pos.y).signum();
+
+    if raw_dx == 0 && raw_dy == 0 { return; }
 
     let map = npc.pos.map;
     let (map_w, map_h) = world.gd().get_map_bounds(map);
-    let new_x = (npc.pos.x + dx).clamp(1, map_w);
-    let new_y = (npc.pos.y + dy).clamp(1, map_h);
 
-    if world.gd().is_blocked_tile(map, new_x, new_y) {
+    // Cardinal movement only: prefer the axis with greater distance, fallback to the other
+    let dist_x = (*px - npc.pos.x).abs();
+    let dist_y = (*py - npc.pos.y).abs();
+
+    let candidates: [(i32, i32); 2] = if dist_x >= dist_y {
+        [(raw_dx, 0), (0, raw_dy)]
+    } else {
+        [(0, raw_dy), (raw_dx, 0)]
+    };
+
+    for (dx, dy) in candidates {
+        if dx == 0 && dy == 0 { continue; }
+        let new_x = (npc.pos.x + dx).clamp(1, map_w);
+        let new_y = (npc.pos.y + dy).clamp(1, map_h);
+        if world.gd().is_blocked_tile(map, new_x, new_y) { continue; }
+
+        npc.pos.x = new_x;
+        npc.pos.y = new_y;
+        drop(npc);
+
+        let new_pos = crate::world::Position { map, x: new_x, y: new_y };
+        scene.aoi_move(npc_id, &new_pos);
+
+        let heading: u8 = if dx > 0 { 3 } else if dx < 0 { 4 } else if dy > 0 { 2 } else { 1 };
+        let move_pkt = crate::replication::build_move_entity_packet_with_tick(
+            npc_id, new_x, new_y, heading, tick as u16,
+        );
+        scene.broadcast_in_range(0, &new_pos, move_pkt);
         return;
     }
-
-    npc.pos.x = new_x;
-    npc.pos.y = new_y;
-    drop(npc);
-
-    let new_pos = crate::world::Position { map, x: new_x, y: new_y };
-    scene.aoi_move(npc_id, &new_pos);
-
-    let heading = if dx > 0 { 4 } else if dx < 0 { 3 } else if dy > 0 { 2 } else { 1 };
-    let move_pkt = crate::replication::build_move_entity_packet_with_tick(
-        npc_id, new_x, new_y, heading, tick as u16,
-    );
-    scene.broadcast_in_range(0, &new_pos, move_pkt);
 }
 
 /// NPC AI spell casting. Uses `get_spell_data` for consistent damage derivation.

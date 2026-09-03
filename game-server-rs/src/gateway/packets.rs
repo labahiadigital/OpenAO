@@ -3,10 +3,10 @@ use openao_protocol::PacketWriter;
 
 pub fn heading_to_delta(heading: u8) -> (i32, i32) {
     match heading {
-        1 => (0, -1),
-        2 => (0, 1),
-        3 => (-1, 0),
-        4 => (1, 0),
+        1 => (0, -1),  // up
+        2 => (0, 1),   // down
+        3 => (1, 0),   // right
+        4 => (-1, 0),  // left
         _ => (0, 0),
     }
 }

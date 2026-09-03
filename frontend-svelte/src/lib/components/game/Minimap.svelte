@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import { gameState } from "$lib/game/state/gameState.svelte";
   import { mapState } from "$lib/game/state/mapState.svelte";
   import { getTileAt } from "$lib/game/engine/assetLoader";
@@ -117,15 +116,20 @@
     rafId = requestAnimationFrame(loop);
   }
 
-  onMount(() => {
+  $effect(() => {
     if (canvas) {
       ctx = canvas.getContext("2d");
-      loop();
+      if (rafId === undefined) {
+        loop();
+      }
+      return () => {
+        if (rafId !== undefined) {
+          cancelAnimationFrame(rafId);
+          rafId = undefined;
+        }
+        ctx = null;
+      };
     }
-  });
-
-  onDestroy(() => {
-    if (rafId !== undefined) cancelAnimationFrame(rafId);
   });
 </script>
 

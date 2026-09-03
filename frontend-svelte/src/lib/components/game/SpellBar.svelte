@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { SpellEntry } from "$lib/game/lib/aowProtocol";
-  import { sendAttackSpell } from "$lib/game/session/outgoingRequests";
+  import { gameState } from "$lib/game/state/gameState.svelte";
 
   let { spells }: { spells: SpellEntry[] } = $props();
 
@@ -17,7 +17,11 @@
   });
 
   function castSpell(slot: number) {
-    sendAttackSpell(slot);
+    if (gameState.pendingSpellSlot === slot) {
+      gameState.pendingSpellSlot = null;
+    } else {
+      gameState.pendingSpellSlot = slot;
+    }
   }
 </script>
 
@@ -26,9 +30,11 @@
     <button
       onclick={() => castSpell(idx)}
       class="w-10 h-10 rounded-lg border transition relative flex items-center justify-center
-        {spell
-          ? 'border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300'
-          : 'border-white/5 bg-black/40 text-stone-600'}"
+        {spell && gameState.pendingSpellSlot === idx
+          ? 'border-yellow-400 bg-yellow-500/30 text-yellow-200 ring-1 ring-yellow-400'
+          : spell
+            ? 'border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300'
+            : 'border-white/5 bg-black/40 text-stone-600'}"
       title={spell ? `${spell.name} (Mana: ${spell.manaRequired})` : `Slot ${idx + 1}`}
     >
       {#if spell}

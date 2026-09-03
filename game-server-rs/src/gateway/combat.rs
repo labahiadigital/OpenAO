@@ -87,6 +87,53 @@ impl GameSession {
         closest_id
     }
 
+    fn find_target_at_tile(
+        scene: &Scene,
+        tile_pos: &Position,
+        attacker_id: u32,
+        safe_map: bool,
+    ) -> Option<CombatTarget> {
+        // Check NPCs at the exact tile
+        for entry in scene.npcs.iter() {
+            let npc = entry.value();
+            if npc.dead || npc.max_hp <= 0 { continue; }
+            if npc.pos.x == tile_pos.x && npc.pos.y == tile_pos.y {
+                return Some(CombatTarget::Npc(npc.id));
+            }
+        }
+        if safe_map { return None; }
+        let attacker_safe = scene.players.get(&attacker_id)
+            .map(|p| (p.seguro_activado, p.seguro_clan_activado, p.clan_id.clone()))
+            .unwrap_or((false, false, None));
+        if attacker_safe.0 { return None; }
+        let attacker_faction = scene.players.get(&attacker_id)
+            .map(|p| p.faction.clone()).unwrap_or_default();
+        let attacker_criminal = scene.players.get(&attacker_id)
+            .map(|p| p.criminal).unwrap_or(false);
+        for entry in scene.players.iter() {
+            let p = entry.value();
+            if p.id == attacker_id || p.dead { continue; }
+            if p.pos.x != tile_pos.x || p.pos.y != tile_pos.y { continue; }
+            if p.invisible { continue; }
+            if attacker_safe.1 {
+                if let Some(ref aclan) = attacker_safe.2 {
+                    if p.clan_id.as_deref() == Some(aclan.as_str()) { continue; }
+                }
+            }
+            let is_citizen = |fac: &str, crim: bool| {
+                fac == "armada" || (fac != "caos" && !crim)
+            };
+            if is_citizen(&attacker_faction, attacker_criminal) && is_citizen(&p.faction, p.criminal) {
+                if let (Some(aclan), Some(pclan)) = (&attacker_safe.2, &p.clan_id) {
+                    if aclan == pclan { continue; }
+                }
+                if attacker_safe.2.is_some() { continue; }
+            }
+            return Some(CombatTarget::Player(p.id));
+        }
+        None
+    }
+
     fn find_target(
         scene: &Scene,
         pos: &Position,
@@ -554,8 +601,8 @@ impl GameSession {
             }
         }
 
-        let player_pos = match scene.players.get(&entity_id) {
-            Some(p) => p.pos.clone(),
+        let (player_pos, player_heading) = match scene.players.get(&entity_id) {
+            Some(p) => (p.pos.clone(), p.heading),
             None => return Ok(()),
         };
         let is_safe = self.world.gd().is_safe_position(map_id, player_pos.x, player_pos.y)
@@ -565,8 +612,12 @@ impl GameSession {
             p.action_cooldowns.trigger_melee(now);
         }
 
+        let (dx, dy) = crate::gateway::packets::heading_to_delta(player_heading);
+        let target_tile_x = player_pos.x + dx;
+        let target_tile_y = player_pos.y + dy;
+        let target_pos = crate::world::Position { map: map_id, x: target_tile_x, y: target_tile_y };
         let target =
-            Self::find_target(&scene, &player_pos, 2, entity_id, is_safe);
+            Self::find_target_at_tile(&scene, &target_pos, entity_id, is_safe);
 
         match target {
             Some(CombatTarget::Npc(npc_id)) => {
