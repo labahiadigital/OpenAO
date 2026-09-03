@@ -38,7 +38,6 @@
   const WS_URL = import.meta.env.VITE_GAME_WS_URL || "ws://localhost:7666";
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-  let lastMoveTime = 0;
   let handlersRegistered = false;
   let pingInterval: ReturnType<typeof setInterval> | undefined;
   let ticket = $state("");
@@ -47,38 +46,57 @@
   let castBarRaf: number | undefined;
   let connectCalled = false;
 
-  onMount(() => {
-    assetStore.load();
-    ticket = localStorage.getItem("game_ticket") || "no-ticket";
-  });
+  // ── Movement system (mirrors the original Engine.check / moveTo loop) ──
+  // We track which direction keys are currently held down and use our own
+  // timer-based loop that fires every WALK_STEP_MS while at least one key
+  // is pressed.  This gives us:
+  //  • Precise timing independent of OS key-repeat rate
+  //  • Smooth chaining of tile-step animations
+  //  • Priority: last-pressed direction wins (like the original)
+  const heldDirections = new Set<number>(); // heading values: 1=up, 2=down, 3=right, 4=left
+  let directionPriority: number[] = []; // most-recently pressed first
+  let moveLoopTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastStepTime = 0;
 
-  function connect() {
-    if (connectCalled) return;
-    connectCalled = true;
-    if (!handlersRegistered) {
-      registerAllPacketHandlers();
-      handlersRegistered = true;
+  function startMoveLoop() {
+    if (moveLoopTimer !== undefined) return;
+    // First step: execute immediately and record the time.
+    attemptStep();
+  }
+
+  function stopMoveLoop() {
+    if (moveLoopTimer !== undefined) {
+      clearTimeout(moveLoopTimer);
+      moveLoopTimer = undefined;
     }
-    gameState.reset();
-    gameSession.connect(WS_URL, ticket, 0, 0);
-    localStorage.removeItem("game_ticket");
-    pingInterval = setInterval(sendPingWithTimestamp, 10000);
-    setTimeout(sendPingWithTimestamp, 500);
   }
 
-  function disconnect() {
-    if (pingInterval) clearInterval(pingInterval);
-    pingInterval = undefined;
-    gameSession.disconnect();
-    gameState.reset();
-    connectCalled = false;
-  }
+  function attemptStep() {
+    moveLoopTimer = undefined;
+    if (heldDirections.size === 0) return;
+    if (gameSession.connectionState !== "connected" && gameSession.connectionState !== "authenticated") return;
 
-  function tryMove(heading: number) {
+    let heading: number | undefined;
+    for (const h of directionPriority) {
+      if (heldDirections.has(h)) { heading = h; break; }
+    }
+    if (heading === undefined) return;
+
     const now = performance.now();
-    if (now - lastMoveTime < WALK_STEP_MS) return;
-    lastMoveTime = now;
+    const elapsed = now - lastStepTime;
 
+    if (elapsed >= WALK_STEP_MS) {
+      doMove(heading, now);
+      lastStepTime = now;
+      // Schedule next step exactly WALK_STEP_MS from now.
+      moveLoopTimer = setTimeout(attemptStep, WALK_STEP_MS);
+    } else {
+      // Wait the remaining time.
+      moveLoopTimer = setTimeout(attemptStep, WALK_STEP_MS - elapsed);
+    }
+  }
+
+  function doMove(heading: number, now: number) {
     const { x, y } = gameState.hud.pos;
     const dx = heading === 3 ? 1 : heading === 4 ? -1 : 0;
     const dy = heading === 2 ? 1 : heading === 1 ? -1 : 0;
@@ -109,9 +127,6 @@
     gameState.inputSender.record(tick, { heading });
     gameState.mergeHud({ pos: { x: nx, y: ny }, heading });
 
-    // Start a visual slide animation (like the original's startCharacterMovement).
-    // The logical position has already jumped to the target tile; the renderer
-    // will offset the sprite/camera backwards and linearly interpolate to 0.
     gameState.playerMoveAnim = {
       startedAt: now,
       durationMs: WALK_STEP_MS,
@@ -122,15 +137,56 @@
     sendPosition(heading, tick);
   }
 
+  onMount(() => {
+    assetStore.load();
+    ticket = localStorage.getItem("game_ticket") || "no-ticket";
+  });
+
+  function connect() {
+    if (connectCalled) return;
+    connectCalled = true;
+    if (!handlersRegistered) {
+      registerAllPacketHandlers();
+      handlersRegistered = true;
+    }
+    gameState.reset();
+    gameSession.connect(WS_URL, ticket, 0, 0);
+    localStorage.removeItem("game_ticket");
+    pingInterval = setInterval(sendPingWithTimestamp, 10000);
+    setTimeout(sendPingWithTimestamp, 500);
+  }
+
+  function disconnect() {
+    if (pingInterval) clearInterval(pingInterval);
+    pingInterval = undefined;
+    gameSession.disconnect();
+    gameState.reset();
+    connectCalled = false;
+  }
+
+  const KEY_TO_HEADING: Record<string, number> = {
+    ArrowUp: 1, w: 1,
+    ArrowDown: 2, s: 2,
+    ArrowRight: 3, d: 3,
+    ArrowLeft: 4, a: 4,
+  };
+
   function handleKeydown(e: KeyboardEvent) {
     if (gameSession.connectionState !== "connected" && gameSession.connectionState !== "authenticated") return;
-    if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+    if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+
+    const heading = KEY_TO_HEADING[e.key];
+    if (heading !== undefined) {
+      e.preventDefault();
+      if (!heldDirections.has(heading)) {
+        heldDirections.add(heading);
+        directionPriority = [heading, ...directionPriority.filter(h => h !== heading)];
+      }
+      startMoveLoop();
+      return;
+    }
 
     switch (e.key) {
-      case "ArrowUp": case "w": e.preventDefault(); tryMove(1); break;
-      case "ArrowDown": case "s": e.preventDefault(); tryMove(2); break;
-      case "ArrowLeft": case "a": e.preventDefault(); tryMove(4); break;
-      case "ArrowRight": case "d": e.preventDefault(); tryMove(3); break;
       case " ": e.preventDefault(); sendAttackMelee(); break;
       case "g": sendPickupItem(); break;
       case "u": sendToggleSafe(); break;
@@ -139,6 +195,17 @@
       case "F3": e.preventDefault(); gameState.showDebugOverlay = !gameState.showDebugOverlay; break;
       case "Escape": gameState.pendingSpellSlot = null; break;
       default: break;
+    }
+  }
+
+  function handleKeyup(e: KeyboardEvent) {
+    const heading = KEY_TO_HEADING[e.key];
+    if (heading !== undefined) {
+      heldDirections.delete(heading);
+      directionPriority = directionPriority.filter(h => h !== heading);
+      if (heldDirections.size === 0) {
+        stopMoveLoop();
+      }
     }
   }
 
@@ -175,11 +242,12 @@
 
   onDestroy(() => {
     if (pingInterval) clearInterval(pingInterval);
+    stopMoveLoop();
     gameSession.disconnect();
   });
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} onblur={() => { heldDirections.clear(); directionPriority = []; stopMoveLoop(); }} />
 
 <!-- Connection overlay -->
 {#if !isConnected}

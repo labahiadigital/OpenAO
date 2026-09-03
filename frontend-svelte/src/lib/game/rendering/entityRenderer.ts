@@ -556,8 +556,8 @@ export function renderPlayer(
   const pc = state.playerContainer;
   if (!pc) return;
 
-  const idBody = hud.idBody ?? 1;
-  const idHead = hud.idHead ?? 1;
+  const idBody = hud.idBody || 1;
+  const idHead = hud.idHead || 1;
   const heading = hud.heading;
 
   const bodyGrhId = assetStore.getBodyGrhId(idBody, heading);

@@ -599,7 +599,7 @@ impl GameData {
             palette.insert(idx, PaletteEntry { blocked, layer1, layer2 });
         }
 
-        let grid = raw.get("grid").and_then(|v| v.as_array())?;
+        let grid = raw.get("grid").or_else(|| raw.get("rows")).and_then(|v| v.as_array())?;
         let total = (width * height) as usize;
         let mut tiles = Vec::with_capacity(total);
 

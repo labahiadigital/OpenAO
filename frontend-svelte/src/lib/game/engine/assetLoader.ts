@@ -180,10 +180,11 @@ function parseGraphicsField(g: unknown): Record<string, number> {
 /**
  * Decodes map data matching the original frontend format exactly.
  * The .d array iterates: for outerIdx=1..w { for innerIdx=1..h }.
- * The original stores as mapData[outerIdx][innerIdx] but accesses
- * with getTileAt(mapData, mapNumber, x, y) = mapData[mapNumber][y][x].
- * So outerIdx corresponds to y (row) and innerIdx to x (column).
- * We replicate: tiles[y][x] — accessed via getTileAt(map, x, y).
+ * The original decompressMap uses var names x/y but getTileAt accesses
+ * as mapData[y][x] — meaning outerIdx is treated as the Y dimension
+ * and innerIdx as X when reading tiles.
+ * Storage: tiles[outerIdx][innerIdx].
+ * Access: getTileAt(map, x, y) → tiles[y][x] (matching original).
  */
 export function decodeMap(mapData: MapJSON): MapParsed {
   const { w, h, id } = mapData;
@@ -228,7 +229,8 @@ export function decodeMap(mapData: MapJSON): MapParsed {
 }
 
 /**
- * Access tile at (x, y) — matches original: mapData[mapNumber][y][x]
+ * Access tile at (x, y). Matches original: mapData[mapNumber][y][x].
+ * outerIdx in the decompressor corresponds to y, innerIdx to x.
  */
 export function getTileAt(map: MapParsed, x: number, y: number): TileData | undefined {
   return map.tiles[y]?.[x];

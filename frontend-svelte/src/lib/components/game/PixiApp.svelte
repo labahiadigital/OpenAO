@@ -95,14 +95,14 @@
     // offsetCounterX/Y + moveOffsetX/Y pattern).
     let camOffsetPx = 0;
     let camOffsetPy = 0;
+    let isAnimating = false;
     const anim = gameState.playerMoveAnim;
     if (anim) {
       const elapsed = performance.now() - anim.startedAt;
       const t = Math.min(1, elapsed / anim.durationMs); // 0→1
-      // Camera offset: slides from -TILE_SIZE*delta*(1-0) to 0
-      // Using the *inverse* progress so camera catches up to the new pos.
       camOffsetPx = -TILE_SIZE * anim.dx * (1 - t);
       camOffsetPy = -TILE_SIZE * anim.dy * (1 - t);
+      isAnimating = t < 1;
       if (t >= 1) {
         gameState.playerMoveAnim = null;
       }
@@ -121,6 +121,18 @@
     updateTreeTransparency(tileState, px, py);
 
     renderPlayer(PIXI, entityState, gameState.hud, px, py, createSprite);
+
+    if (entityState.playerContainer) {
+      entityState.playerContainer.x = (px - 1) * TILE_SIZE + camOffsetPx;
+      entityState.playerContainer.y = (py - 1) * TILE_SIZE + camOffsetPy;
+    }
+
+    // Keep the player marked as "moving" while sliding so the walk cycle
+    // plays the full animation instead of snapping back to idle.
+    if (isAnimating) {
+      entityState.playerLastMoveTime = performance.now();
+    }
+
     renderRemoteEntities(
       PIXI, entityLayer, entityState,
       gameState.remoteEntities,
