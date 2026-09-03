@@ -198,13 +198,34 @@ export function cullOffscreenTiles(
   vw: number,
   vh: number,
 ) {
+  // Tiles within view range + 1 are visible.
+  // Tiles beyond destroy range are removed entirely to prevent memory growth.
+  const destroyRange = Math.max(vw, vh) + 12;
+
   for (const [key, sprites] of state.tileSprites) {
     const parts = key.split(",");
     const tx = Number(parts[0]);
     const ty = Number(parts[1]);
-    const visible =
-      Math.abs(tx - px) <= vw + 1 && Math.abs(ty - py) <= vh + 1;
-    for (const s of sprites) s.visible = visible;
+    const dx = Math.abs(tx - px);
+    const dy = Math.abs(ty - py);
+    if (dx > destroyRange || dy > destroyRange) {
+      for (const s of sprites) s.destroy();
+      state.tileSprites.delete(key);
+      state.builtTiles.delete(key);
+      // Also clean up associated tree entries
+      state.treeSpriteEntries = state.treeSpriteEntries.filter(
+        (e) => !(e.x === tx && e.y === ty),
+      );
+      // Clean roof sprites
+      const roofSprites = state.roofSprites.get(key);
+      if (roofSprites) {
+        for (const s of roofSprites) s.destroy();
+        state.roofSprites.delete(key);
+      }
+    } else {
+      const visible = dx <= vw + 1 && dy <= vh + 1;
+      for (const s of sprites) s.visible = visible;
+    }
   }
 
   for (const [key, sprites] of state.roofSprites) {
@@ -212,6 +233,8 @@ export function cullOffscreenTiles(
     const parts = key.split(",");
     const tx = Number(parts[0]);
     const ty = Number(parts[1]);
+    // Skip entries already destroyed in the loop above.
+    if (!state.tileSprites.has(key)) continue;
     const visible =
       Math.abs(tx - px) <= vw + 1 && Math.abs(ty - py) <= vh + 1;
     for (const s of sprites) s.visible = visible;

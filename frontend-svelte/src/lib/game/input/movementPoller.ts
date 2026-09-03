@@ -91,12 +91,14 @@ function doMove(heading: number, now: number) {
 
 /** Call from keydown handler in GameView. */
 export function pressDirection(heading: number) {
+  const wasEmpty = heldDirections.size === 0;
   if (!heldDirections.has(heading)) {
     heldDirections.add(heading);
     directionPriority = [heading, ...directionPriority.filter((h) => h !== heading)];
   }
-  // If this is the first key pressed, allow immediate movement.
-  if (heldDirections.size === 1) {
+  // Only allow an immediate first step if NO keys were held before this
+  // press — prevents instant steps when alternating directions quickly.
+  if (wasEmpty) {
     lastStepTime = 0;
   }
 }

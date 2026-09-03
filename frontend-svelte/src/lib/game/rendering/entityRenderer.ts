@@ -42,6 +42,8 @@ export type EntityRenderState = {
   /** Last known visual position — used to detect movement for animation */
   lastVisualX: number;
   lastVisualY: number;
+  /** Set by updateRenderStateHeading so the animation loop applies new textures */
+  needsFrameRefresh?: boolean;
 };
 
 const NAME_COLORS: Record<number, number> = {
@@ -185,6 +187,8 @@ export function clearEntityState(state: EntityContainerState) {
   state.npcContainers.clear();
   state.npcRenderStates.clear();
   state.entityMoveTimes.clear();
+  // Clean up the animation frame texture cache to free GPU memory.
+  textureFrameCache.clear();
 }
 
 function buildRenderState(bodyId: number, headId: number, bodyGrhId: number, headGrhId: number, heading: number, dead: boolean, nc: number): EntityRenderState {
@@ -212,10 +216,19 @@ function buildRenderState(bodyId: number, headId: number, bodyGrhId: number, hea
 
 /**
  * When the heading changes but the body/head IDs stay the same,
- * update only the animation frames (cheap) instead of destroying
- * and rebuilding the entire Pixi container (expensive).
+ * update only the animation frame arrays (cheap) instead of
+ * destroying and rebuilding the entire Pixi container + PIXI.Text.
+ *
+ * Sets `needsFrameRefresh = true` so that the next call to
+ * `updateContainerAnim` (which has access to the texture cache)
+ * will apply the new textures to the sprites.
  */
-function updateRenderStateHeading(rs: EntityRenderState, bodyGrhId: number, headGrhId: number, heading: number) {
+function updateRenderStateHeading(
+  rs: EntityRenderState,
+  bodyGrhId: number,
+  headGrhId: number,
+  heading: number,
+) {
   rs.heading = heading;
   rs.bodyGrh = bodyGrhId;
   rs.headGrh = headGrhId;
@@ -225,7 +238,9 @@ function updateRenderStateHeading(rs: EntityRenderState, bodyGrhId: number, head
   rs.bodyFrameCount = bodyAnim?.frameCount ?? 1;
   rs.headAnimFrames = headAnim?.frames;
   rs.headFrameCount = headAnim?.frameCount ?? 1;
-  rs.lastFrameIdx = -1; // force frame refresh on next animate
+  // Force the animation loop to re-apply textures on the next frame.
+  rs.lastFrameIdx = -1;
+  rs.needsFrameRefresh = true;
 }
 
 export function renderRemoteEntities(
@@ -479,35 +494,83 @@ function updateContainerAnim(
   now: number,
   isMoving: boolean,
 ) {
-  if (!rs.bodyAnimFrames || rs.bodyFrameCount <= 1) return;
+  // When heading changed (needsFrameRefresh), apply the correct textures
+  // immediately regardless of movement state — critical for heads that have
+  // 1 frame per direction.
+  if (rs.needsFrameRefresh) {
+    rs.needsFrameRefresh = false;
+    const frame0 = 0;
+    if (rs.bodyAnimFrames) {
+      applyBodyFrame(PIXI, container, rs.bodyAnimFrames, frame0, cache);
+    }
+    if (rs.headAnimFrames) {
+      applyHeadFrame(PIXI, container, rs.headAnimFrames, frame0, cache);
+    }
+    rs.lastFrameIdx = frame0;
+  }
+
+  // Bodies with only 1 frame (static) still need head updates, so don't
+  // bail early.  We just skip the body animation cycle for them.
+  const animateBody = rs.bodyAnimFrames && rs.bodyFrameCount > 1;
 
   if (isMoving) {
     if (!rs.wasMoving) {
       rs.animStartTime = now;
       rs.wasMoving = true;
     }
-    const elapsed = now - rs.animStartTime;
-    const msPerFrame = Math.max(Math.round(BODY_ANIMATION_CYCLE_MS / rs.bodyFrameCount), 1);
-    const frameIdx = Math.floor(elapsed / msPerFrame) % rs.bodyFrameCount;
+    if (animateBody) {
+      const elapsed = now - rs.animStartTime;
+      const msPerFrame = Math.max(Math.round(BODY_ANIMATION_CYCLE_MS / rs.bodyFrameCount), 1);
+      const frameIdx = Math.floor(elapsed / msPerFrame) % rs.bodyFrameCount;
 
-    if (frameIdx !== rs.lastFrameIdx) {
-      rs.lastFrameIdx = frameIdx;
-      applyBodyFrame(PIXI, container, rs.bodyAnimFrames, frameIdx, cache);
-      if (rs.headAnimFrames && rs.headFrameCount > 1) {
-        const headFrameIdx = Math.floor(elapsed / msPerFrame) % rs.headFrameCount;
-        applyHeadFrame(PIXI, container, rs.headAnimFrames, headFrameIdx, cache);
+      if (frameIdx !== rs.lastFrameIdx) {
+        rs.lastFrameIdx = frameIdx;
+        applyBodyFrame(PIXI, container, rs.bodyAnimFrames!, frameIdx, cache);
+        if (rs.headAnimFrames && rs.headFrameCount > 1) {
+          const headFrameIdx = Math.floor(elapsed / msPerFrame) % rs.headFrameCount;
+          applyHeadFrame(PIXI, container, rs.headAnimFrames, headFrameIdx, cache);
+        }
       }
     }
   } else {
-    if (rs.wasMoving || rs.lastFrameIdx !== 0) {
+    if (animateBody && (rs.wasMoving || rs.lastFrameIdx !== 0)) {
       rs.lastFrameIdx = 0;
       rs.wasMoving = false;
-      applyBodyFrame(PIXI, container, rs.bodyAnimFrames, 0, cache);
+      applyBodyFrame(PIXI, container, rs.bodyAnimFrames!, 0, cache);
       if (rs.headAnimFrames && rs.headFrameCount > 1) {
         applyHeadFrame(PIXI, container, rs.headAnimFrames, 0, cache);
       }
+    } else if (rs.wasMoving) {
+      rs.wasMoving = false;
     }
   }
+}
+
+// Cache textures by GraphicInfo identity to avoid creating thousands of
+// new PIXI.Texture objects per second during walk animations.
+// Key: "fileNum,sX,sY,w,h"
+const textureFrameCache = new Map<string, import("pixi.js").Texture>();
+
+function getOrCreateFrameTexture(
+  PIXI: typeof import("pixi.js"),
+  info: GraphicInfo,
+  srcCache: TextureSourceCache,
+): import("pixi.js").Texture | null {
+  const src = srcCache.get(info.fileNum);
+  if (!src) return null;
+  const fw = Math.min(info.w, src.width - info.sX);
+  const fh = Math.min(info.h, src.height - info.sY);
+  if (fw <= 0 || fh <= 0) return null;
+  const key = `${info.fileNum},${info.sX},${info.sY},${fw},${fh}`;
+  let tex = textureFrameCache.get(key);
+  if (!tex) {
+    tex = new PIXI.Texture({
+      source: src,
+      frame: new PIXI.Rectangle(info.sX, info.sY, fw, fh),
+    });
+    textureFrameCache.set(key, tex);
+  }
+  return tex;
 }
 
 function applyBodyFrame(
@@ -519,20 +582,11 @@ function applyBodyFrame(
 ) {
   const frameInfo = frames[frameIdx];
   if (!frameInfo) return;
+  const tex = getOrCreateFrameTexture(PIXI, frameInfo, cache);
+  if (!tex) return;
   for (const child of container.children) {
     if ((child as any)._isBody) {
-      const src = cache.get(frameInfo.fileNum);
-      if (!src) continue;
-      try {
-        const fw = Math.min(frameInfo.w, src.width - frameInfo.sX);
-        const fh = Math.min(frameInfo.h, src.height - frameInfo.sY);
-        if (fw > 0 && fh > 0) {
-          (child as PixiSprite).texture = new PIXI.Texture({
-            source: src,
-            frame: new PIXI.Rectangle(frameInfo.sX, frameInfo.sY, fw, fh),
-          });
-        }
-      } catch { /* keep current frame */ }
+      (child as PixiSprite).texture = tex;
     }
   }
 }
@@ -546,20 +600,11 @@ function applyHeadFrame(
 ) {
   const headFrame = frames[frameIdx];
   if (!headFrame) return;
+  const tex = getOrCreateFrameTexture(PIXI, headFrame, cache);
+  if (!tex) return;
   for (const child of container.children) {
     if ((child as any)._isHead) {
-      const src = cache.get(headFrame.fileNum);
-      if (!src) continue;
-      try {
-        const fw = Math.min(headFrame.w, src.width - headFrame.sX);
-        const fh = Math.min(headFrame.h, src.height - headFrame.sY);
-        if (fw > 0 && fh > 0) {
-          (child as PixiSprite).texture = new PIXI.Texture({
-            source: src,
-            frame: new PIXI.Rectangle(headFrame.sX, headFrame.sY, fw, fh),
-          });
-        }
-      } catch { /* keep current frame */ }
+      (child as PixiSprite).texture = tex;
     }
   }
 }
